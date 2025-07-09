@@ -11,7 +11,9 @@
   "keywords": ["react", "state", "sync", "mirrorstate"],
   "author": "",
   "license": "MIT",
-  "dependencies": {},
+  "dependencies": {
+    "immer": "^10.0.3"
+  },
   "devDependencies": {
     "@types/react": "^18.2.43",
     "react": "^18.2.0",

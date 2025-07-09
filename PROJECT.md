@@ -27,7 +27,7 @@ React library and Vite plugin for bidirectional state synchronization through `*
   - an immutable current state
   - `updateMirrorState` function which allows users to imperatively update the state, and on the callback edit, the `[name].mirror.json` file gets written
 
-## Development Setup
+## Running
 
 1. Install dependencies:
    ```bash
@@ -37,11 +37,6 @@ React library and Vite plugin for bidirectional state synchronization through `*
 2. Build the packages:
    ```bash
    npm run build
-   ```
-
-3. Run the counter example:
-   ```bash
-   npm run dev
    ```
 
 ## Feature: Project Scaffold
@@ -55,6 +50,21 @@ React library and Vite plugin for bidirectional state synchronization through `*
 
 ## Feature: Todo Example
 
-- [ ] create a simple Todo list example which stores the state in MirrorState
-- [ ] use `immer` to expose an imperative-like API for modifying the state, as described in the project architecture
+- [x] create a simple Todo list example which stores the state in MirrorState @done(2025-01-09)
+- [x] use `immer` to expose an imperative-like API for modifying the state, as described in the project architecture @done(2025-01-09)
 
+## Feature: Consolidated Examples
+
+- [ ] add a single `npm run examples` which starts the examples
+- [ ] the UI should show a list of examples that can be navigated to
+- [ ] have a single React & Vite project for the examples, instead of separate directories
+- [ ] update Running section in this document
+
+## Feature: Better Logs
+
+- [ ] add timestamps and colors to logs
+
+## Feature: Implementation Review
+
+- [ ] review constants used in code - we seem to rely on `localhost` and specific websocket port, can we follow more of Vite approach with configuration, auto-finding ports, etc?
+- [ ] review anything else and think hard what did we miss here?

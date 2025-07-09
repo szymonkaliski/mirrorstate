@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { produce, Draft } from 'immer';
 
 export function useMirrorState<T>(name: string, initialValue: T) {
   const [state, setState] = useState<T>(initialValue);
@@ -27,9 +28,9 @@ export function useMirrorState<T>(name: string, initialValue: T) {
     };
   }, [name]);
 
-  const updateMirrorState = (updater: (draft: T) => T) => {
+  const updateMirrorState = (updater: (draft: Draft<T>) => void) => {
     setState(prevState => {
-      const newState = updater(prevState);
+      const newState = produce(prevState, updater);
       // Send update to server to write to file
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ name, state: newState }));
