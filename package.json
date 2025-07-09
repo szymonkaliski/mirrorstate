@@ -1,21 +1,17 @@
 {
-  "name": "mirrorstate-monorepo",
-  "version": "0.1.0",
+  "name": "mirrorstate",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "npm run build --workspace=packages/vite-plugin-mirrorstate && npm run build --workspace=packages/react-mirrorstate",
-    "build:all": "npm run build --workspaces",
-    "build:plugin": "npm run build --workspace=packages/vite-plugin-mirrorstate",
-    "build:react": "npm run build --workspace=packages/react-mirrorstate",
-    "example:counter": "npm run dev --workspace=examples/counter-example",
-    "example:todo": "npm run dev --workspace=examples/todo-example",
+    "examples": "npm run dev --workspace=examples",
     "dev:plugin": "npm run dev --workspace=packages/vite-plugin-mirrorstate",
     "dev:react": "npm run dev --workspace=packages/react-mirrorstate",
     "clean": "rm -rf packages/*/dist examples/*/dist"
   },
   "workspaces": [
     "packages/*",
-    "examples/*"
+    "examples"
   ],
   "devDependencies": {
     "typescript": "^5.3.3"

@@ -3,6 +3,7 @@ import { produce, Draft } from 'immer';
 
 export function useMirrorState<T>(name: string, initialValue: T) {
   const [state, setState] = useState<T>(initialValue);
+  const [isInitialized, setIsInitialized] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -12,6 +13,13 @@ export function useMirrorState<T>(name: string, initialValue: T) {
     wsRef.current.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        
+        // Handle initial state from server
+        if (data.type === 'initialState' && data.name === name) {
+          setState(data.state);
+          setIsInitialized(true);
+          console.log(`Initial state loaded from file: ${name}`, data.state);
+        }
         
         // Handle file changes from server
         if (data.type === 'fileChange' && data.name === name) {
@@ -23,10 +31,19 @@ export function useMirrorState<T>(name: string, initialValue: T) {
       }
     };
 
+    // Set a timeout to mark as initialized even if no file exists
+    const initTimeout = setTimeout(() => {
+      if (!isInitialized) {
+        setIsInitialized(true);
+        console.log(`No existing file found for ${name}, using initial value`);
+      }
+    }, 1000);
+
     return () => {
       wsRef.current?.close();
+      clearTimeout(initTimeout);
     };
-  }, [name]);
+  }, [name, isInitialized]);
 
   const updateMirrorState = (updater: (draft: Draft<T>) => void) => {
     setState(prevState => {

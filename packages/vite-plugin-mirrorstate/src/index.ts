@@ -3,6 +3,7 @@ import * as chokidar from 'chokidar';
 import { WebSocketServer } from 'ws';
 import * as fs from 'fs';
 import * as path from 'path';
+import { glob } from 'glob';
 
 export function mirrorStatePlugin(): Plugin {
   return {
@@ -41,6 +42,25 @@ export function mirrorStatePlugin(): Plugin {
 
       wss.on('connection', (ws) => {
         console.log('Client connected to MirrorState');
+        
+        // Send initial state for all existing .mirror.json files
+        const mirrorFiles = glob.sync('**/*.mirror.json', { ignore: 'node_modules/**' });
+        
+        mirrorFiles.forEach((filePath: string) => {
+          try {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const data = JSON.parse(content);
+            const name = path.basename(filePath, '.mirror.json');
+            
+            ws.send(JSON.stringify({
+              type: 'initialState',
+              name,
+              state: data
+            }));
+          } catch (error) {
+            console.error(`Error reading initial state from ${filePath}:`, error);
+          }
+        });
         
         ws.on('message', (message) => {
           try {

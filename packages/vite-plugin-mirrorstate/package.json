@@ -13,7 +13,8 @@
   "license": "MIT",
   "dependencies": {
     "ws": "^8.14.2",
-    "chokidar": "^3.5.3"
+    "chokidar": "^3.5.3",
+    "glob": "^10.3.10"
   },
   "devDependencies": {
     "@types/ws": "^8.5.8",

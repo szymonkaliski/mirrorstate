@@ -39,6 +39,11 @@ React library and Vite plugin for bidirectional state synchronization through `*
    npm run build
    ```
 
+3. Run the examples:
+   ```bash
+   npm run examples
+   ```
+
 ## Feature: Project Scaffold
 
 - [x] set up `git` repo @done(2025-01-09)
@@ -55,10 +60,10 @@ React library and Vite plugin for bidirectional state synchronization through `*
 
 ## Feature: Consolidated Examples
 
-- [ ] add a single `npm run examples` which starts the examples
-- [ ] the UI should show a list of examples that can be navigated to
-- [ ] have a single React & Vite project for the examples, instead of separate directories
-- [ ] update Running section in this document
+- [x] add a single `npm run examples` which starts the examples @done(2025-01-09)
+- [x] the UI should show a list of examples that can be navigated to @done(2025-01-09)
+- [x] have a single React & Vite project for the examples, instead of separate directories @done(2025-01-09)
+- [x] update Running section in this document @done(2025-01-09)
 
 ## Feature: Better Logs
 
@@ -68,3 +73,4 @@ React library and Vite plugin for bidirectional state synchronization through `*
 
 - [ ] review constants used in code - we seem to rely on `localhost` and specific websocket port, can we follow more of Vite approach with configuration, auto-finding ports, etc?
 - [ ] review anything else and think hard what did we miss here?
+

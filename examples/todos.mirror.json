@@ -1,0 +1,18 @@
+{
+  "todos": [
+    {
+      "id": "1752061708361",
+      "text": "test text 1",
+      "completed": false,
+      "createdAt": 1752061708361
+    },
+    {
+      "id": "1752061705784",
+      "text": "test text 2",
+      "completed": true,
+      "createdAt": 1752061705784
+    }
+  ],
+  "filter": "all"
+}
+
