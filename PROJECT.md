@@ -27,22 +27,12 @@ React library and Vite plugin for bidirectional state synchronization through `*
   - an immutable current state
   - `updateMirrorState` function which allows users to imperatively update the state, and on the callback edit, the `[name].mirror.json` file gets written
 
-## Running
+## Commands
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Build the packages:
-   ```bash
-   npm run build
-   ```
-
-3. Run the examples:
-   ```bash
-   npm run examples
-   ```
+- install dependencies: `npm install`
+- start development: `npm run dev:plugin` & `npm run dev:react`
+- build packages: `npm run build`
+- run examples: `npm run examples`
 
 ## Feature: Project Scaffold
 
@@ -64,6 +54,20 @@ React library and Vite plugin for bidirectional state synchronization through `*
 - [x] the UI should show a list of examples that can be navigated to @done(2025-01-09)
 - [x] have a single React & Vite project for the examples, instead of separate directories @done(2025-01-09)
 - [x] update Running section in this document @done(2025-01-09)
+
+## Feature: Initial State Persistence
+
+- [x] fix useMirrorState to read initial state from existing .mirror.json files @done(2025-01-09)
+- [x] add WebSocket protocol support for initial state loading @done(2025-01-09)
+- [x] implement file scanning with glob to find existing mirror files @done(2025-01-09)
+- [x] add proper initialization tracking in React hook @done(2025-01-09)
+
+## Feature: Development Experience Improvements
+
+- [x] add concurrently for running multiple processes simultaneously @done(2025-01-09)
+- [x] enhance npm scripts with colored prefixes for better debugging @done(2025-01-09)
+- [x] improve error handling and ES module compatibility @done(2025-01-09)
+- [x] streamline development workflow with single npm run dev command @done(2025-01-09)
 
 ## Feature: Better Logs
 
