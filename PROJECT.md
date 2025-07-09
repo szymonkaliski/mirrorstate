@@ -27,13 +27,34 @@ React library and Vite plugin for bidirectional state synchronization through `*
   - an immutable current state
   - `updateMirrorState` function which allows users to imperatively update the state, and on the callback edit, the `[name].mirror.json` file gets written
 
+## Development Setup
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Build the packages:
+   ```bash
+   npm run build
+   ```
+
+3. Run the counter example:
+   ```bash
+   npm run dev
+   ```
+
 ## Feature: Project Scaffold
 
-- [ ] set up `git` repo
-- [ ] set up directories for:
-  - [ ] Vite plugin
-  - [ ] React library
-  - [ ] an examples directory - scaffold projects with minimal React + Vite code, don't use `create-react-app` etc.
-- [ ] set up basic Vite and React code together with a simple counter example (where the count is persisted in MirrorState)
+- [x] set up `git` repo @done(2025-01-09)
+- [x] set up directories for:
+  - [x] Vite plugin @done(2025-01-09)
+  - [x] React library @done(2025-01-09)
+  - [x] an examples directory - scaffold projects with minimal React + Vite code, don't use `create-react-app` etc. @done(2025-01-09)
+- [x] set up basic Vite and React code together with a simple counter example (where the count is persisted in MirrorState) @done(2025-01-09)
 
+## Feature: Todo Example
+
+- [ ] create a simple Todo list example which stores the state in MirrorState
+- [ ] use `immer` to expose an imperative-like API for modifying the state, as described in the project architecture
 

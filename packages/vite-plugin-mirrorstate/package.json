@@ -1,0 +1,26 @@
+{
+  "name": "vite-plugin-mirrorstate",
+  "version": "0.1.0",
+  "description": "Vite plugin for bidirectional state synchronization through *.mirror.json files",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["vite", "plugin", "state", "sync"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2",
+    "chokidar": "^3.5.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.8",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.0"
+  },
+  "peerDependencies": {
+    "vite": "^5.0.0"
+  }
+}

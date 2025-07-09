@@ -1,0 +1,23 @@
+{
+  "name": "react-mirrorstate",
+  "version": "0.1.0",
+  "description": "React library for bidirectional state synchronization with MirrorState",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": ["react", "state", "sync", "mirrorstate"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/react": "^18.2.43",
+    "react": "^18.2.0",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  }
+}
