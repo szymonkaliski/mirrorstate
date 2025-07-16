@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { produce, Draft } from 'immer';
+import { createLogger } from '@mirrorstate/shared';
+
+const logger = createLogger('react-hook');
 
 export function useMirrorState<T>(name: string, initialValue: T) {
   const [state, setState] = useState<T>(initialValue);
@@ -18,16 +21,16 @@ export function useMirrorState<T>(name: string, initialValue: T) {
         if (data.type === 'initialState' && data.name === name) {
           setState(data.state);
           setIsInitialized(true);
-          console.log(`Initial state loaded from file: ${name}`, data.state);
+          logger.info(`Initial state loaded from file: ${name}`, data.state);
         }
         
         // Handle file changes from server
         if (data.type === 'fileChange' && data.name === name) {
           setState(data.state);
-          console.log(`State updated from file: ${name}`, data.state);
+          logger.info(`State updated from file: ${name}`, data.state);
         }
       } catch (error) {
-        console.error('Error handling server message:', error);
+        logger.error('Error handling server message:', error);
       }
     };
 
@@ -35,7 +38,7 @@ export function useMirrorState<T>(name: string, initialValue: T) {
     const initTimeout = setTimeout(() => {
       if (!isInitialized) {
         setIsInitialized(true);
-        console.log(`No existing file found for ${name}, using initial value`);
+        logger.info(`No existing file found for ${name}, using initial value`);
       }
     }, 1000);
 

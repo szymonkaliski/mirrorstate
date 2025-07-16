@@ -4,6 +4,9 @@ import { WebSocketServer } from 'ws';
 import * as fs from 'fs';
 import * as path from 'path';
 import { glob } from 'glob';
+import { createLogger } from '@mirrorstate/shared';
+
+const logger = createLogger('vite-plugin');
 
 export function mirrorStatePlugin(): Plugin {
   return {
@@ -34,14 +37,14 @@ export function mirrorStatePlugin(): Plugin {
             }
           });
           
-          console.log(`Mirror file changed: ${filePath}`);
+          logger.info(`Mirror file changed: ${filePath}`);
         } catch (error) {
-          console.error(`Error reading mirror file ${filePath}:`, error);
+          logger.error(`Error reading mirror file ${filePath}:`, error);
         }
       });
 
       wss.on('connection', (ws) => {
-        console.log('Client connected to MirrorState');
+        logger.info('Client connected to MirrorState');
         
         // Send initial state for all existing .mirror.json files
         const mirrorFiles = glob.sync('**/*.mirror.json', { ignore: 'node_modules/**' });
@@ -58,7 +61,7 @@ export function mirrorStatePlugin(): Plugin {
               state: data
             }));
           } catch (error) {
-            console.error(`Error reading initial state from ${filePath}:`, error);
+            logger.error(`Error reading initial state from ${filePath}:`, error);
           }
         });
         
@@ -71,9 +74,9 @@ export function mirrorStatePlugin(): Plugin {
             const filePath = `${name}.mirror.json`;
             fs.writeFileSync(filePath, JSON.stringify(state, null, 2));
             
-            console.log(`Updated ${filePath} with state:`, state);
+            logger.info(`Updated ${filePath} with state:`, state);
           } catch (error) {
-            console.error('Error handling client message:', error);
+            logger.error('Error handling client message:', error);
           }
         });
       });

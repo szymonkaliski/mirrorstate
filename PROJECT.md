@@ -71,10 +71,37 @@ React library and Vite plugin for bidirectional state synchronization through `*
 
 ## Feature: Better Logs
 
-- [ ] add timestamps and colors to logs
+- [x] add timestamps and colors to logs @done(2025-01-16)
 
 ## Feature: Implementation Review
 
-- [ ] review constants used in code - we seem to rely on `localhost` and specific websocket port, can we follow more of Vite approach with configuration, auto-finding ports, etc?
-- [ ] review anything else and think hard what did we miss here?
+- [x] review constants used in code - we seem to rely on `localhost` and specific websocket port, can we follow more of Vite approach with configuration, auto-finding ports, etc? -> for example running with `8080` used results in error! @done(2025-01-16)
+- [x] review anything else and think hard what did we miss here @done(2025-01-16)
+  - [x] create a new Feature entry here after this one that collects the review fixes to be applied @done(2025-01-16)
+
+## Feature: Architecture Improvements
+
+- [ ] reuse Vite's existing WebSocket & HTTP server instead of starting separate server on port 8080
+  - [ ] attach `WebSocketServer` with `noServer` true to Vite's `httpServer`
+  - [ ] use configurable (unique by default) path like `/mirrorstate` instead of separate port
+  - [ ] build WebSocket URL from `location.host` instead of hardcoded `localhost:8080`
+
+- [ ] fix file identifier system to use full relative paths instead of `basename` only
+  - [ ] prevents collisions when multiple files have same name in different directories
+  - [ ] use `path.relative(root, filePath)` as identifier
+
+- [ ] add configuration options with `MirrorStatePluginOptions` interface
+  - [ ] `path`, `filePattern`, `watchOptions`, pretty print control
+  - [ ] provide virtual module `virtual:mirrorstate/config` for compile-time constants
+
+- [ ] improve error handling and robustness
+  - [ ] fix `useEffect` dependencies to prevent multiple socket connections
+  - [ ] add cleanup hooks in `closeBundle`
+
+- [ ] enhance development experience
+  - [ ] friendly startup messages showing WebSocket endpoint
+  - [ ] respect LOG_LEVEL for logging
+
+- [ ] add production mode that disables `WebSocket` connections
+  - [ ] it should still return the content of mirror state on boot, not `undefined`
 

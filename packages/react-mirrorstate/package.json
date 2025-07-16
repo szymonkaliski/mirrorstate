@@ -12,7 +12,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "immer": "^10.0.3"
+    "immer": "^10.0.3",
+    "@mirrorstate/shared": "file:../shared"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",

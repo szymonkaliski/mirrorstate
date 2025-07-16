@@ -14,7 +14,8 @@
   "dependencies": {
     "ws": "^8.14.2",
     "chokidar": "^3.5.3",
-    "glob": "^10.3.10"
+    "glob": "^10.3.10",
+    "@mirrorstate/shared": "file:../shared"
   },
   "devDependencies": {
     "@types/ws": "^8.5.8",
