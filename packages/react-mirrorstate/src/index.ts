@@ -6,9 +6,8 @@ export function useMirrorState<T>(name: string, initialValue: T) {
   const [state, setState] = useState<T>(initialValue);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // The connection manager handles both WebSocket (dev) and inlined state (production)
   useEffect(() => {
-    // The connection manager handles both WebSocket (dev) and inlined state (production)
-
     // Subscribe to state changes for this name
     const unsubscribe = connectionManager.subscribe(name, (newState: T) => {
       setState(newState);
