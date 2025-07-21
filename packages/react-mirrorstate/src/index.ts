@@ -1,49 +1,38 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { produce, Draft } from 'immer';
-import { createLogger } from '@mirrorstate/shared';
-
-const logger = createLogger('react-hook');
+import { connectionManager } from './connection-manager';
 
 export function useMirrorState<T>(name: string, initialValue: T) {
   const [state, setState] = useState<T>(initialValue);
   const [isInitialized, setIsInitialized] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    // Connect to WebSocket server
-    wsRef.current = new WebSocket('ws://localhost:8080');
-    
-    wsRef.current.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // Handle initial state from server
-        if (data.type === 'initialState' && data.name === name) {
-          setState(data.state);
-          setIsInitialized(true);
-          logger.info(`Initial state loaded from file: ${name}`, data.state);
-        }
-        
-        // Handle file changes from server
-        if (data.type === 'fileChange' && data.name === name) {
-          setState(data.state);
-          logger.info(`State updated from file: ${name}`, data.state);
-        }
-      } catch (error) {
-        logger.error('Error handling server message:', error);
+    // The connection manager handles both WebSocket (dev) and inlined state (production)
+
+    // Subscribe to state changes for this name
+    const unsubscribe = connectionManager.subscribe(name, (newState: T) => {
+      setState(newState);
+      setIsInitialized(true);
+    });
+
+    // Check if already initialized and has current state
+    if (connectionManager.isInitialized(name)) {
+      const currentState = connectionManager.getCurrentState(name);
+      if (currentState !== undefined) {
+        setState(currentState);
+        setIsInitialized(true);
       }
-    };
+    }
 
     // Set a timeout to mark as initialized even if no file exists
     const initTimeout = setTimeout(() => {
-      if (!isInitialized) {
+      if (!isInitialized && !connectionManager.isInitialized(name)) {
         setIsInitialized(true);
-        logger.info(`No existing file found for ${name}, using initial value`);
       }
     }, 1000);
 
     return () => {
-      wsRef.current?.close();
+      unsubscribe();
       clearTimeout(initTimeout);
     };
   }, [name, isInitialized]);
@@ -51,10 +40,7 @@ export function useMirrorState<T>(name: string, initialValue: T) {
   const updateMirrorState = (updater: (draft: Draft<T>) => void) => {
     setState(prevState => {
       const newState = produce(prevState, updater);
-      // Send update to server to write to file
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ name, state: newState }));
-      }
+      connectionManager.updateState(name, newState);
       return newState;
     });
   };
