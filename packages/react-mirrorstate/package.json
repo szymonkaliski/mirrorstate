@@ -8,7 +8,12 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
-  "keywords": ["react", "state", "sync", "mirrorstate"],
+  "keywords": [
+    "react",
+    "state",
+    "sync",
+    "mirrorstate"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {

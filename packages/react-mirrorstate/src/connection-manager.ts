@@ -1,6 +1,6 @@
-import { createLogger } from '@mirrorstate/shared';
+import { createLogger } from "@mirrorstate/shared";
 
-const logger = createLogger('ws-manager');
+const logger = createLogger("ws-manager");
 
 type StateListener = (state: any) => void;
 
@@ -13,19 +13,19 @@ class WebSocketConnectionManager {
 
   private getWebSocketConfig() {
     try {
-      const config = require('virtual:mirrorstate/config');
+      const config = require("virtual:mirrorstate/config");
       return config;
     } catch {
-      return { WS_PATH: '/mirrorstate' };
+      return { WS_PATH: "/mirrorstate" };
     }
   }
 
   private buildWebSocketURL(path: string): string {
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return `ws://localhost:5173${path}`;
     }
-    
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = window.location.host;
     return `${protocol}//${host}${path}`;
   }
@@ -35,55 +35,55 @@ class WebSocketConnectionManager {
       return;
     }
 
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       // In production, don't create WebSocket but still allow loading initial state
       return;
     }
 
     this.isConnecting = true;
-    
+
     const config = this.getWebSocketConfig();
     const wsUrl = this.buildWebSocketURL(config.WS_PATH);
-    
+
     logger.debug(`Connecting to ${wsUrl}`);
-    
+
     this.ws = new WebSocket(wsUrl);
-    
+
     this.ws.onopen = () => {
       this.isConnecting = false;
-      logger.debug('WebSocket connected');
+      logger.debug("WebSocket connected");
     };
-    
+
     this.ws.onclose = () => {
       this.isConnecting = false;
       this.ws = null;
-      logger.debug('WebSocket closed');
+      logger.debug("WebSocket closed");
     };
-    
+
     this.ws.onerror = () => {
       this.isConnecting = false;
       this.ws = null;
-      logger.error('WebSocket error');
+      logger.error("WebSocket error");
     };
-    
+
     this.ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
-        if (data.type === 'initialState') {
+
+        if (data.type === "initialState") {
           this.currentStates.set(data.name, data.state);
           this.initialized.add(data.name);
           this.notifyListeners(data.name, data.state);
           logger.info(`Initial state loaded: ${data.name}`, data.state);
         }
-        
-        if (data.type === 'fileChange') {
+
+        if (data.type === "fileChange") {
           this.currentStates.set(data.name, data.state);
           this.notifyListeners(data.name, data.state);
           logger.info(`State updated: ${data.name}`, data.state);
         }
       } catch (error) {
-        logger.error('Error handling server message:', error);
+        logger.error("Error handling server message:", error);
       }
     };
   }
@@ -91,10 +91,10 @@ class WebSocketConnectionManager {
   async getInlinedInitialStates(): Promise<Record<string, any>> {
     try {
       // Import the virtual module with inlined states
-      const module = await import('virtual:mirrorstate/initial-states' as any);
+      const module = await import("virtual:mirrorstate/initial-states" as any);
       return module.INITIAL_STATES || {};
     } catch (error) {
-      logger.debug('Failed to load virtual module:', error);
+      logger.debug("Failed to load virtual module:", error);
       return {};
     }
   }
@@ -103,14 +103,14 @@ class WebSocketConnectionManager {
     // Always try to load inlined states - works in both dev and production
     const inlinedStates = await this.getInlinedInitialStates();
     const state = inlinedStates[name];
-    
+
     if (state !== undefined) {
       this.currentStates.set(name, state);
       this.initialized.add(name);
       logger.info(`Loaded inlined initial state: ${name}`, state);
       return state;
     }
-    
+
     return undefined;
   }
 
@@ -118,24 +118,24 @@ class WebSocketConnectionManager {
     if (!this.listeners.has(name)) {
       this.listeners.set(name, new Set());
     }
-    
+
     this.listeners.get(name)!.add(listener);
-    
+
     // Connect if not already connected (dev mode)
     this.connect();
-    
+
     // If we already have state for this name, notify immediately
     if (this.currentStates.has(name)) {
       listener(this.currentStates.get(name));
     } else {
       // Try to load from inlined states (production) or wait for WebSocket (dev)
-      this.loadInitialStateFromInline(name).then(state => {
+      this.loadInitialStateFromInline(name).then((state) => {
         if (state !== undefined) {
           this.notifyListeners(name, state);
         }
       });
     }
-    
+
     return () => {
       const nameListeners = this.listeners.get(name);
       if (nameListeners) {
@@ -191,7 +191,7 @@ class WebSocketConnectionManager {
   private notifyListeners(name: string, state: any): void {
     const nameListeners = this.listeners.get(name);
     if (nameListeners) {
-      nameListeners.forEach(listener => listener(state));
+      nameListeners.forEach((listener) => listener(state));
     }
   }
 }

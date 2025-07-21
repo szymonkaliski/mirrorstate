@@ -7,13 +7,15 @@
     "examples": "npm run dev --workspace=examples",
     "dev:plugin": "npm run dev --workspace=packages/vite-plugin-mirrorstate",
     "dev:react": "npm run dev --workspace=packages/react-mirrorstate",
-    "clean": "rm -rf packages/*/dist examples/*/dist"
+    "clean": "rm -rf packages/*/dist examples/*/dist",
+    "format": "prettier --write ."
   },
   "workspaces": [
     "packages/*",
     "examples"
   ],
   "devDependencies": {
+    "prettier": "^3.6.2",
     "typescript": "^5.3.3"
   }
 }

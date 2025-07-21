@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { produce, Draft } from 'immer';
-import { connectionManager } from './connection-manager';
+import { useEffect, useState } from "react";
+import { produce, Draft } from "immer";
+import { connectionManager } from "./connection-manager";
 
 export function useMirrorState<T>(name: string, initialValue: T) {
   const [state, setState] = useState<T>(initialValue);
@@ -38,7 +38,7 @@ export function useMirrorState<T>(name: string, initialValue: T) {
   }, [name, isInitialized]);
 
   const updateMirrorState = (updater: (draft: Draft<T>) => void) => {
-    setState(prevState => {
+    setState((prevState) => {
       const newState = produce(prevState, updater);
       connectionManager.updateState(name, newState);
       return newState;

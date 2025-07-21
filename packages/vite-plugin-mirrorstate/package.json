@@ -8,7 +8,12 @@
     "build": "tsc",
     "dev": "tsc --watch"
   },
-  "keywords": ["vite", "plugin", "state", "sync"],
+  "keywords": [
+    "vite",
+    "plugin",
+    "state",
+    "sync"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {

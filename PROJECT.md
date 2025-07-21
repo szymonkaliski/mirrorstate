@@ -110,4 +110,3 @@ React library and Vite plugin for bidirectional state synchronization through `*
 - [x] remove all styling from the examples, keep the CSS extremely minimal, it's ok if things use default DOM elements, the goal is to show the functionality @done(2025-07-21)
 - [x] keep both the counter and the todo on the same page, so no internal navigation is necessary @done(2025-07-21)
 - [x] make the code as minimal as possible, the goal is to highlight the library use, nothing else @done(2025-07-21)
-
