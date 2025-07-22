@@ -1,5 +1,5 @@
-import CounterExample from "./examples/CounterExample";
-import TodoExample from "./examples/TodoExample";
+import CounterExample from "./CounterExample";
+import TodoExample from "./TodoExample";
 
 function App() {
   return (
@@ -14,15 +14,11 @@ function App() {
         files
       </p>
 
-      <section>
-        <h2>Counter</h2>
-        <CounterExample />
-      </section>
+      <h2>Counter</h2>
+      <CounterExample />
 
-      <section>
-        <h2>Todo List</h2>
-        <TodoExample />
-      </section>
+      <h2>Todo List</h2>
+      <TodoExample />
     </div>
   );
 }

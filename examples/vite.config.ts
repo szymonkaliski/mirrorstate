@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react";
 import { mirrorStatePlugin } from "../packages/vite-plugin-mirrorstate/dist";
 import path from "path";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), mirrorStatePlugin()],
   resolve: {

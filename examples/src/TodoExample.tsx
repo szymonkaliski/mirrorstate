@@ -50,12 +50,20 @@ function TodoExample() {
 
   return (
     <div>
+      <p>
+        Synchronized with <code>todos.mirror.json</code>
+      </p>
+
       <div>
         <input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && addTodo()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              addTodo();
+            }
+          }}
           placeholder="What needs to be done?"
         />
         <button onClick={addTodo}>Add</button>
@@ -80,10 +88,6 @@ function TodoExample() {
           </div>
         ))}
       </div>
-
-      <p>
-        Synchronized with <code>todos.mirror.json</code>
-      </p>
     </div>
   );
 }
