@@ -17,10 +17,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "immer": "^10.0.3",
-    "@mirrorstate/shared": "file:../shared"
+    "debug": "^4.4.1",
+    "immer": "^10.0.3"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/react": "^18.2.43",
     "react": "^18.2.0",
     "typescript": "^5.3.3"

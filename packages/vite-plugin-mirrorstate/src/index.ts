@@ -4,9 +4,9 @@ import { WebSocketServer } from "ws";
 import * as fs from "fs";
 import * as path from "path";
 import { glob } from "glob";
-import { createLogger } from "@mirrorstate/shared";
+import debug from "debug";
 
-const logger = createLogger("vite-plugin");
+const logger = debug("mirrorstate:vite-plugin");
 
 export interface MirrorStatePluginOptions {
   path?: string;
@@ -51,7 +51,7 @@ export function mirrorStatePlugin(
         ...opts.watchOptions,
       });
 
-      logger.info(
+      logger(
         `MirrorState WebSocket listening on ws://localhost:${server.config.server.port || 5173}${wsPath}`,
       );
 
@@ -86,9 +86,9 @@ export function mirrorStatePlugin(
             }
           });
 
-          logger.info(`Mirror file changed externally: ${name}`);
+          logger(`Mirror file changed externally: ${name}`);
         } catch (error) {
-          logger.error(`Error reading mirror file ${filePath}:`, error);
+          console.error(`Error reading mirror file ${filePath}:`, error);
         }
       });
 
@@ -97,7 +97,7 @@ export function mirrorStatePlugin(
         const clientId = Math.random().toString(36).substring(7);
         (ws as any).clientId = clientId;
 
-        logger.info(`Client connected to MirrorState (${clientId})`);
+        logger(`Client connected to MirrorState (${clientId})`);
 
         const pattern = Array.isArray(opts.filePattern)
           ? opts.filePattern
@@ -125,7 +125,7 @@ export function mirrorStatePlugin(
               }),
             );
           } catch (error) {
-            logger.error(
+            console.error(
               `Error reading initial state from ${filePath}:`,
               error,
             );
@@ -144,7 +144,7 @@ export function mirrorStatePlugin(
 
             // Skip if this is a duplicate message from the same client
             if (lastHash === messageHash) {
-              logger.debug(
+              logger(
                 `Skipping duplicate message from ${clientId} for ${name}`,
               );
               return;
@@ -184,19 +184,19 @@ export function mirrorStatePlugin(
               }
             });
 
-            logger.info(
+            logger(
               `Updated ${name} with state (from ${clientId}):`,
               state,
             );
           } catch (error) {
-            logger.error("Error handling client message:", error);
+            console.error("Error handling client message:", error);
           }
         });
 
         ws.on("close", () => {
           // Clean up client data on disconnect
           lastMessageHash.delete(clientId);
-          logger.debug(`Client ${clientId} disconnected`);
+          logger(`Client ${clientId} disconnected`);
         });
       });
     },
@@ -233,9 +233,9 @@ export function mirrorStatePlugin(
             const relativePath = path.relative(process.cwd(), filePath);
             const name = relativePath.replace(/\.mirror\.json$/, "");
             states[name] = data;
-            logger.debug(`Inlined initial state for ${name}`);
+            logger(`Inlined initial state for ${name}`);
           } catch (error) {
-            logger.error(
+            console.error(
               `Error reading initial state from ${filePath}:`,
               error,
             );
@@ -249,11 +249,11 @@ export function mirrorStatePlugin(
     closeBundle() {
       if (watcher) {
         watcher.close();
-        logger.debug("File watcher closed");
+        logger("File watcher closed");
       }
       if (wss) {
         wss.close();
-        logger.debug("WebSocket server closed");
+        logger("WebSocket server closed");
       }
     },
   };

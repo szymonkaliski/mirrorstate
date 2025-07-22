@@ -17,14 +17,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "ws": "^8.14.2",
     "chokidar": "^3.5.3",
+    "debug": "^4.4.1",
     "glob": "^10.3.10",
-    "@mirrorstate/shared": "file:../shared"
+    "ws": "^8.14.2"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.8",
+    "@types/debug": "^4.1.12",
     "@types/node": "^18.0.0",
+    "@types/ws": "^8.5.8",
     "typescript": "^5.3.3",
     "vite": "^7.0.0"
   },

@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "build": "npm run build --workspace=packages/vite-plugin-mirrorstate && npm run build --workspace=packages/react-mirrorstate",
-    "examples": "npm run dev --workspace=examples",
+    "dev": "concurrently -n \"plugin,react,examples\" -c \"magenta,green,yellow\" \"npm run dev:plugin\" \"npm run dev:react\" \"npm run examples\"",
+    "examples": "DEBUG=mirrorstate:* npm run dev --workspace=examples",
     "dev:plugin": "npm run dev --workspace=packages/vite-plugin-mirrorstate",
     "dev:react": "npm run dev --workspace=packages/react-mirrorstate",
-    "clean": "rm -rf packages/*/dist examples/*/dist",
+    "clean": "rm -rf packages/*/dist examples/dist",
     "format": "prettier --write ."
   },
   "workspaces": [
@@ -15,6 +16,7 @@
     "examples"
   ],
   "devDependencies": {
+    "concurrently": "^9.2.0",
     "prettier": "^3.6.2",
     "typescript": "^5.3.3"
   }

@@ -1,6 +1,6 @@
-import { createLogger } from "@mirrorstate/shared";
+import debug from "debug";
 
-const logger = createLogger("ws-manager");
+const logger = debug("mirrorstate:ws-manager");
 
 type StateListener = (state: any) => void;
 
@@ -45,25 +45,25 @@ class WebSocketConnectionManager {
     const config = this.getWebSocketConfig();
     const wsUrl = this.buildWebSocketURL(config.WS_PATH);
 
-    logger.debug(`Connecting to ${wsUrl}`);
+    logger(`Connecting to ${wsUrl}`);
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       this.isConnecting = false;
-      logger.debug("WebSocket connected");
+      logger("WebSocket connected");
     };
 
     this.ws.onclose = () => {
       this.isConnecting = false;
       this.ws = null;
-      logger.debug("WebSocket closed");
+      logger("WebSocket closed");
     };
 
     this.ws.onerror = () => {
       this.isConnecting = false;
       this.ws = null;
-      logger.error("WebSocket error");
+      console.error("WebSocket error");
     };
 
     this.ws.onmessage = (event) => {
@@ -74,16 +74,16 @@ class WebSocketConnectionManager {
           this.currentStates.set(data.name, data.state);
           this.initialized.add(data.name);
           this.notifyListeners(data.name, data.state);
-          logger.info(`Initial state loaded: ${data.name}`, data.state);
+          logger(`Initial state loaded: ${data.name}`, data.state);
         }
 
         if (data.type === "fileChange") {
           this.currentStates.set(data.name, data.state);
           this.notifyListeners(data.name, data.state);
-          logger.info(`State updated: ${data.name}`, data.state);
+          logger(`State updated: ${data.name}`, data.state);
         }
       } catch (error) {
-        logger.error("Error handling server message:", error);
+        console.error("Error handling server message:", error);
       }
     };
   }
@@ -94,7 +94,7 @@ class WebSocketConnectionManager {
       const module = await import("virtual:mirrorstate/initial-states" as any);
       return module.INITIAL_STATES || {};
     } catch (error) {
-      logger.debug("Failed to load virtual module:", error);
+      logger("Failed to load virtual module:", error);
       return {};
     }
   }
@@ -107,7 +107,7 @@ class WebSocketConnectionManager {
     if (state !== undefined) {
       this.currentStates.set(name, state);
       this.initialized.add(name);
-      logger.info(`Loaded inlined initial state: ${name}`, state);
+      logger(`Loaded inlined initial state: ${name}`, state);
       return state;
     }
 
@@ -164,7 +164,7 @@ class WebSocketConnectionManager {
     // Check if this is actually a different state
     const lastState = this.lastSentState.get(name);
     if (lastState && JSON.stringify(lastState) === JSON.stringify(state)) {
-      logger.debug(`Skipping duplicate state update for ${name}`);
+      logger(`Skipping duplicate state update for ${name}`);
       return;
     }
 
@@ -174,7 +174,7 @@ class WebSocketConnectionManager {
       this.currentStates.set(name, state);
       this.lastSentState.set(name, state);
       this.pendingUpdates.delete(name);
-      logger.debug(`Sent state update for ${name}`);
+      logger(`Sent state update for ${name}`);
     }, 10); // 10ms debounce
 
     this.pendingUpdates.set(name, timeout);

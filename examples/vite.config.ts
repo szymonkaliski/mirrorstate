@@ -12,10 +12,6 @@ export default defineConfig({
         __dirname,
         "../packages/react-mirrorstate/dist",
       ),
-      "vite-plugin-mirrorstate": path.resolve(
-        __dirname,
-        "../packages/vite-plugin-mirrorstate/dist",
-      ),
     },
   },
 });
