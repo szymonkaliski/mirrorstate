@@ -28,7 +28,7 @@ export function useMirrorState<T>(name: string, initialValue: T) {
       if (!isInitialized && !connectionManager.isInitialized(name)) {
         setIsInitialized(true);
       }
-    }, 1000);
+    }, 100);
 
     return () => {
       unsubscribe();

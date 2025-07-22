@@ -100,7 +100,7 @@ class WebSocketConnectionManager {
   }
 
   async loadInitialStateFromInline(name: string): Promise<any> {
-    // Always try to load inlined states - works in both dev and production
+    // Always try to load inlined states - both in dev and production
     const inlinedStates = await this.getInlinedInitialStates();
     const state = inlinedStates[name];
 
@@ -163,19 +163,23 @@ class WebSocketConnectionManager {
 
     // Check if this is actually a different state
     const lastState = this.lastSentState.get(name);
-    if (lastState && JSON.stringify(lastState) === JSON.stringify(state)) {
+    if (lastState === state) {
       logger(`Skipping duplicate state update for ${name}`);
       return;
     }
 
     // Debounce rapid updates
     const timeout = setTimeout(() => {
-      this.ws!.send(JSON.stringify({ name, state }));
+      if (!this.ws) {
+        return;
+      }
+
+      this.ws.send(JSON.stringify({ name, state }));
       this.currentStates.set(name, state);
       this.lastSentState.set(name, state);
       this.pendingUpdates.delete(name);
       logger(`Sent state update for ${name}`);
-    }, 10); // 10ms debounce
+    }, 10);
 
     this.pendingUpdates.set(name, timeout);
   }

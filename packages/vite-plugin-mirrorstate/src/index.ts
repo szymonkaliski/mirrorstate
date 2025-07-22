@@ -144,9 +144,7 @@ export function mirrorStatePlugin(
 
             // Skip if this is a duplicate message from the same client
             if (lastHash === messageHash) {
-              logger(
-                `Skipping duplicate message from ${clientId} for ${name}`,
-              );
+              logger(`Skipping duplicate message from ${clientId} for ${name}`);
               return;
             }
 
@@ -184,10 +182,7 @@ export function mirrorStatePlugin(
               }
             });
 
-            logger(
-              `Updated ${name} with state (from ${clientId}):`,
-              state,
-            );
+            logger(`Updated ${name} with state (from ${clientId}):`, state);
           } catch (error) {
             console.error("Error handling client message:", error);
           }
