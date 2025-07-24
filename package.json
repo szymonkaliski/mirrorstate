@@ -9,7 +9,8 @@
     "dev:plugin": "npm run dev --workspace=packages/vite-plugin-mirrorstate",
     "dev:react": "npm run dev --workspace=packages/react-mirrorstate",
     "clean": "rm -rf packages/*/dist examples/dist",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "publish": "npm run build && npm publish --workspace=packages/vite-plugin-mirrorstate && npm publish --workspace=packages/react-mirrorstate"
   },
   "workspaces": [
     "packages/*",
