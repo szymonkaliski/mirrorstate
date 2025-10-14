@@ -2,6 +2,10 @@
   "name": "mirrorstate",
   "version": "1.0.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/szymonkaliski/mirrorstate.git"
+  },
   "scripts": {
     "build": "npm run build --workspace=packages/vite-plugin-mirrorstate && npm run build --workspace=packages/react-mirrorstate",
     "dev": "concurrently -n \"plugin,react,examples\" -c \"magenta,green,yellow\" \"npm run dev:plugin\" \"npm run dev:react\" \"npm run examples\"",

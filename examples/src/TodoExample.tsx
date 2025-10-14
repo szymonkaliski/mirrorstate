@@ -1,5 +1,5 @@
 import { useMirrorState } from "react-mirrorstate";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Todo {
   id: string;
@@ -12,10 +12,13 @@ interface TodoState {
 }
 
 function TodoExample() {
-  const [todoState, updateTodoState] = useMirrorState<TodoState>("todos", {
-    todos: [],
-  });
+  const [todoState, updateTodoState] = useMirrorState<TodoState>("todos");
   const [inputValue, setInputValue] = useState("");
+
+  useEffect(() => {
+    console.log("initial todo state", todoState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const addTodo = () => {
     if (inputValue.trim()) {
@@ -70,7 +73,7 @@ function TodoExample() {
       </div>
 
       <div>
-        {todoState.todos.map((todo) => (
+        {todoState?.todos.map((todo) => (
           <div key={todo.id}>
             <input
               type="checkbox"

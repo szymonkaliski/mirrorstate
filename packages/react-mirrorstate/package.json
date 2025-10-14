@@ -1,6 +1,6 @@
 {
   "name": "react-mirrorstate",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React library for bidirectional state synchronization with MirrorState",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +16,11 @@
   ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/szymonkaliski/mirrorstate.git",
+    "directory": "packages/react-mirrorstate"
+  },
   "dependencies": {
     "debug": "^4.4.1",
     "immer": "^10.0.3"

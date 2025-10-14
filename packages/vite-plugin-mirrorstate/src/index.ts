@@ -86,6 +86,14 @@ export function mirrorStatePlugin(
             }
           });
 
+          // Invalidate the virtual module for HMR
+          const mod = server.moduleGraph.getModuleById(
+            "virtual:mirrorstate/initial-states",
+          );
+          if (mod) {
+            server.moduleGraph.invalidateModule(mod);
+          }
+
           logger(`Mirror file changed externally: ${name}`);
         } catch (error) {
           console.error(`Error reading mirror file ${filePath}:`, error);
@@ -161,6 +169,14 @@ export function mirrorStatePlugin(
 
             // Write state to file
             fs.writeFileSync(filePath, jsonContent);
+
+            // Invalidate the virtual module for HMR
+            const mod = server.moduleGraph.getModuleById(
+              "virtual:mirrorstate/initial-states",
+            );
+            if (mod) {
+              server.moduleGraph.invalidateModule(mod);
+            }
 
             // Broadcast to other clients (exclude sender to prevent echo)
             wss.clients.forEach((client) => {

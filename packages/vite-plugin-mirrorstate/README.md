@@ -1,10 +1,8 @@
 # `vite-plugin-mirrorstate`
 
-A Vite plugin that for bi-directional React state synchronization in JSON on disk.
+Vite plugin for bi-directional state synchronization with JSON files on disk.
 
-Requires React and `react-mirrorstate` plugin.
-
-Changes made in the UI are reflected on disk, and changes on disk propagate to the UI.
+**Note:** Both `vite-plugin-mirrorstate` and `react-mirrorstate` are required to use MirrorState.
 
 ## Installation
 
@@ -12,69 +10,10 @@ Changes made in the UI are reflected on disk, and changes on disk propagate to t
 npm install vite-plugin-mirrorstate react-mirrorstate
 ```
 
-## Example
+## Documentation
 
-Create a `state.mirror.json` file:
-
-```json
-{
-  "count": 20,
-  "message": "Hello World"
-}
-```
-
-Start `vite` with `vite-plugin-mirrorstate` enabled:
-
-```typescript
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import mirrorstate from "vite-plugin-mirrorstate";
-
-export default defineConfig({
-  plugins: [react(), mirrorstate()],
-});
-```
-
-Set up a React component:
-
-```tsx
-import { useMirrorState } from "react-mirrorstate";
-
-function App() {
-  const [state, updateState] = useMirrorState("state", {
-    count: 0,
-    message: "",
-  });
-
-  return (
-    <div>
-      <p>
-        {state.message}: {state.count}
-      </p>
-      <button
-        onClick={() =>
-          updateState((draft) => {
-            draft.count++;
-          })
-        }
-      >
-        Increment
-      </button>
-    </div>
-  );
-}
-```
-
-## Optional Configuration
-
-```typescript
-mirrorstate({
-  port: 5174, // WebSocket server port
-  watchPattern: "**/*.mirror.json", // Glob pattern for files to watch
-});
-```
+For full documentation, examples, and API reference, see the [main MirrorState repository](https://github.com/szymonkaliski/mirrorstate).
 
 ## License
 
 MIT
-

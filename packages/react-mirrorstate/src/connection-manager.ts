@@ -9,7 +9,6 @@ class WebSocketConnectionManager {
   private isConnecting = false;
   private listeners = new Map<string, Set<StateListener>>();
   private currentStates = new Map<string, any>();
-  private initialized = new Set<string>();
 
   private getWebSocketConfig() {
     try {
@@ -72,7 +71,6 @@ class WebSocketConnectionManager {
 
         if (data.type === "initialState") {
           this.currentStates.set(data.name, data.state);
-          this.initialized.add(data.name);
           this.notifyListeners(data.name, data.state);
           logger(`Initial state loaded: ${data.name}`, data.state);
         }
@@ -88,32 +86,6 @@ class WebSocketConnectionManager {
     };
   }
 
-  async getInlinedInitialStates(): Promise<Record<string, any>> {
-    try {
-      // Import the virtual module with inlined states
-      const module = await import("virtual:mirrorstate/initial-states" as any);
-      return module.INITIAL_STATES || {};
-    } catch (error) {
-      logger("Failed to load virtual module:", error);
-      return {};
-    }
-  }
-
-  async loadInitialStateFromInline(name: string): Promise<any> {
-    // Always try to load inlined states - both in dev and production
-    const inlinedStates = await this.getInlinedInitialStates();
-    const state = inlinedStates[name];
-
-    if (state !== undefined) {
-      this.currentStates.set(name, state);
-      this.initialized.add(name);
-      logger(`Loaded inlined initial state: ${name}`, state);
-      return state;
-    }
-
-    return undefined;
-  }
-
   subscribe(name: string, listener: StateListener): () => void {
     if (!this.listeners.has(name)) {
       this.listeners.set(name, new Set());
@@ -127,13 +99,6 @@ class WebSocketConnectionManager {
     // If we already have state for this name, notify immediately
     if (this.currentStates.has(name)) {
       listener(this.currentStates.get(name));
-    } else {
-      // Try to load from inlined states (production) or wait for WebSocket (dev)
-      this.loadInitialStateFromInline(name).then((state) => {
-        if (state !== undefined) {
-          this.notifyListeners(name, state);
-        }
-      });
     }
 
     return () => {
@@ -182,10 +147,6 @@ class WebSocketConnectionManager {
     }, 10);
 
     this.pendingUpdates.set(name, timeout);
-  }
-
-  isInitialized(name: string): boolean {
-    return this.initialized.has(name);
   }
 
   getCurrentState(name: string): any {

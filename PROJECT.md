@@ -110,3 +110,67 @@ React library and Vite plugin for bidirectional state synchronization through `*
 - [x] remove all styling from the examples, keep the CSS extremely minimal, it's ok if things use default DOM elements, the goal is to show the functionality @done(2025-07-21)
 - [x] keep both the counter and the todo on the same page, so no internal navigation is necessary @done(2025-07-21)
 - [x] make the code as minimal as possible, the goal is to highlight the library use, nothing else @done(2025-07-21)
+
+## Feature: Synchronous Initial State
+
+Current implementation has a race condition where `initialValue` parameter can overwrite existing `.mirror.json` files:
+
+Race timeline:
+
+1. Component mounts: `useState(initialValue)` (e.g., `{ todos: [] }`)
+2. `useEffect` starts async initialization (WebSocket connecting...)
+3. User clicks "Add Todo" BEFORE WebSocket sends `initialState` message
+4. `updateMirrorState()` runs with `prevState = { todos: [] }` (the `initialValue`)
+5. Writes `{ todos: [newTodo] }` to file, overwriting existing `{ todos: [todo1, todo2, ...] }`
+6. WebSocket `initialState` arrives too late - file already corrupted
+
+Solution: use `virtual:mirrorstate/initial-states` synchronously. File content is source of truth, optional `initialValue` creates file if it's missing.
+The new API will support `useMirrorState<T>("name")` and `useMirrorState<T>("name", defaultValue)`.
+
+- [x] `packages/react-mirrorstate/src/index.ts` - update main hook @done(2025-10-14)
+  - [x] add import at top: `import { INITIAL_STATES } from "virtual:mirrorstate/initial-states";` @done(2025-10-14)
+  - [x] change function signature: make `initialValue` parameter optional (`initialValue?: T`) @done(2025-10-14)
+  - [x] update `useState` initialization: @done(2025-10-14)
+    - [x] change to: `const [state, setState] = useState<T | undefined>(() => INITIAL_STATES?.[name] as T | undefined ?? initialValue);` @done(2025-10-14)
+    - [x] use function form to ensure synchronous evaluation @done(2025-10-14)
+  - [x] remove `isInitialized` state variable @done(2025-10-14)
+  - [x] simplify `useEffect` @done(2025-10-14)
+    - [x] remove all `isInitialized` tracking and `setIsInitialized` calls @done(2025-10-14)
+    - [x] remove initialization timeout logic (lines 26-31) @done(2025-10-14)
+    - [x] remove `isInitialized` from dependency array @done(2025-10-14)
+    - [x] remove `connectionManager.isInitialized()` check (lines 18-24) @done(2025-10-14)
+    - [x] keep only: `connectionManager.subscribe()` call and cleanup @done(2025-10-14)
+  - [x] add file creation logic in `useEffect`: @done(2025-10-14)
+    - [x] check if file doesn't exist: `INITIAL_STATES?.[name] === undefined` @done(2025-10-14)
+    - [x] and if `initialValue` was provided @done(2025-10-14)
+    - [x] call `connectionManager.updateState(name, initialValue)` to create file @done(2025-10-14)
+    - [x] use a ref to track if we've done this once (prevent duplicate writes on re-renders) @done(2025-10-14)
+  - [x] update return type signature: `[T | undefined, typeof updateMirrorState]` to reflect optional state @done(2025-10-14)
+- [x] `packages/react-mirrorstate/src/connection-manager.ts` - remove async initialization infrastructure @done(2025-10-14)
+  - [x] remove `getInlinedInitialStates()` method (lines 91-100) @done(2025-10-14)
+  - [x] remove `loadInitialStateFromInline()` method (lines 102-115) @done(2025-10-14)
+  - [x] remove `initialized` Set property declaration (line 12) @done(2025-10-14)
+  - [x] remove all `initialized.add()` calls (lines 75, 109) @done(2025-10-14)
+  - [x] remove `isInitialized()` method (lines 187-189) @done(2025-10-14)
+  - [x] simplify `subscribe()` method (lines 117-147): @done(2025-10-14)
+    - [x] keep listener registration logic @done(2025-10-14)
+    - [x] keep immediate notification if `currentStates.has(name)` @done(2025-10-14)
+    - [x] remove `loadInitialStateFromInline()` call and `.then()` promise logic (lines 131-137) @done(2025-10-14)
+    - [x] keep `connect()` call @done(2025-10-14)
+  - [x] keep `currentStates` Map - still needed for tracking WebSocket updates @done(2025-10-14)
+  - [x] keep `getCurrentState()` method - may still be useful @done(2025-10-14)
+- [x] add type declarations for virtual module @done(2025-10-14)
+  - [x] create or update `packages/react-mirrorstate/src/virtual.d.ts`: @done(2025-10-14)
+    ```typescript
+    declare module "virtual:mirrorstate/initial-states" {
+      export const INITIAL_STATES: Record<string, any> | undefined;
+    }
+    ```
+  - [x] ensure `virtual.d.ts` is included in `tsconfig.json` or as a sibling to source files @done(2025-10-14)
+- [x] `packages/vite-plugin-mirrorstate/src/index.ts` - add HMR for virtual module (optional but recommended) @done(2025-10-14)
+  - [x] in watcher `change` handler (around line 58), after broadcasting WebSocket message: @done(2025-10-14)
+    - [x] get virtual module from module graph: `const mod = server.moduleGraph.getModuleById('virtual:mirrorstate/initial-states');` @done(2025-10-14)
+    - [x] invalidate it: `if (mod) { server.moduleGraph.invalidateModule(mod); }` @done(2025-10-14)
+- [x] update examples code @done(2025-10-14)
+- [x] update README @done(2025-10-14)
+- [x] version bump the package @done(2025-10-14)

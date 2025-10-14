@@ -42,11 +42,20 @@ export default defineConfig({
 
 3. Use the hook in your React component:
 
+**With initialValue (creates file if missing):**
+
 ```tsx
 import { useMirrorState } from "react-mirrorstate";
 
+interface State {
+  count: number;
+  message: string;
+}
+
 function App() {
-  const [state, updateState] = useMirrorState("state", {
+  // State is loaded synchronously from state.mirror.json
+  // If file doesn't exist, initialValue creates it
+  const [state, updateState] = useMirrorState<State>("state", {
     count: 0,
     message: "",
   });
@@ -65,6 +74,28 @@ function App() {
       >
         Increment
       </button>
+    </div>
+  );
+}
+```
+
+**Without initialValue (reads existing file only):**
+
+```tsx
+import { useMirrorState } from "react-mirrorstate";
+
+function Counter() {
+  // State will be undefined if counter.mirror.json doesn't exist
+  const [count, updateCount] = useMirrorState<number>("counter");
+
+  if (count === undefined) {
+    return <div>No counter file found. Create counter.mirror.json first.</div>;
+  }
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => updateCount((draft) => draft + 1)}>+</button>
     </div>
   );
 }
@@ -89,4 +120,3 @@ npm run format
 ## License
 
 MIT
-
