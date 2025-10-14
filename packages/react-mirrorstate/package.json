@@ -1,6 +1,6 @@
 {
   "name": "react-mirrorstate",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "description": "React library for bidirectional state synchronization with MirrorState",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,14 +22,12 @@
     "directory": "packages/react-mirrorstate"
   },
   "dependencies": {
-    "debug": "^4.4.1",
-    "immer": "^10.0.3"
+    "immer": "^10.1.3"
   },
   "devDependencies": {
-    "@types/debug": "^4.1.12",
-    "@types/react": "^18.2.43",
-    "react": "^18.2.0",
-    "typescript": "^5.3.3"
+    "@types/react": "^19.2.2",
+    "react": "^19.2.0",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

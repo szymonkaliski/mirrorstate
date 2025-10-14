@@ -20,7 +20,7 @@ export function mirrorStatePlugin(
 ): Plugin {
   const opts = {
     path: "/mirrorstate",
-    filePattern: "**/*.mirror.json",
+    filePattern: ["*.mirror.json", "**/*.mirror.json"],
     prettyPrint: true,
     ...options,
   };
@@ -29,6 +29,7 @@ export function mirrorStatePlugin(
   let watcher: chokidar.FSWatcher;
   let recentWrites = new Set<string>(); // Track recent writes to prevent echo
   let lastMessageHash = new Map<string, string>(); // Track last message hash per client to prevent duplicates
+  let watcherReady = false; // Track if watcher has finished initial scan
 
   return {
     name: "vite-plugin-mirrorstate",
@@ -45,10 +46,100 @@ export function mirrorStatePlugin(
         }
       });
 
-      watcher = chokidar.watch(opts.filePattern, {
+      const baseDir = server.config.root || process.cwd();
+      const pattern = Array.isArray(opts.filePattern)
+        ? opts.filePattern.map((p) => path.join(baseDir, p))
+        : [path.join(baseDir, opts.filePattern)];
+
+      // Find all existing files matching the pattern
+      const existingFiles = pattern.flatMap((p) =>
+        glob.sync(p, {
+          ignore: "node_modules/**",
+        }),
+      );
+
+      logger(
+        `Setting up file watcher for ${existingFiles.length} files: ${JSON.stringify(existingFiles)}`,
+      );
+
+      // Watch both existing files AND the directory for new files
+      const watchTargets = [...existingFiles, baseDir];
+
+      watcher = chokidar.watch(watchTargets, {
         ignored: /node_modules/,
         persistent: true,
         ...opts.watchOptions,
+      });
+
+      watcher.on("add", (filePath) => {
+        // Only process .mirror.json files added after initial scan
+        if (!watcherReady || !filePath.endsWith(".mirror.json")) {
+          return;
+        }
+
+        try {
+          const relativePath = path.relative(baseDir, filePath);
+          const content = fs.readFileSync(filePath, "utf8");
+          const data = JSON.parse(content);
+          const name = relativePath.replace(/\.mirror\.json$/, "");
+
+          // Send new state to all connected clients
+          wss.clients.forEach((client) => {
+            if (client.readyState === client.OPEN) {
+              client.send(
+                JSON.stringify({
+                  type: "initialState",
+                  name,
+                  state: data,
+                }),
+              );
+            }
+          });
+
+          // Invalidate the virtual module for HMR
+          const mod = server.moduleGraph.getModuleById(
+            "\0virtual:mirrorstate/initial-states",
+          );
+          if (mod) {
+            server.moduleGraph.invalidateModule(mod);
+          }
+
+          logger(`New mirror file added: ${name}`);
+        } catch (error) {
+          console.error(`Error reading new mirror file ${filePath}:`, error);
+        }
+      });
+
+      watcher.on("unlink", (filePath) => {
+        // Only process .mirror.json files
+        if (!filePath.endsWith(".mirror.json")) {
+          return;
+        }
+
+        try {
+          const relativePath = path.relative(baseDir, filePath);
+          const name = relativePath.replace(/\.mirror\.json$/, "");
+
+          // Invalidate the virtual module for HMR
+          const mod = server.moduleGraph.getModuleById(
+            "\0virtual:mirrorstate/initial-states",
+          );
+          if (mod) {
+            server.moduleGraph.invalidateModule(mod);
+          }
+
+          logger(`Mirror file deleted: ${name}`);
+        } catch (error) {
+          console.error(
+            `Error handling mirror file deletion ${filePath}:`,
+            error,
+          );
+        }
+      });
+
+      watcher.on("ready", () => {
+        watcherReady = true;
+        logger("File watcher is ready");
       });
 
       logger(
@@ -56,20 +147,23 @@ export function mirrorStatePlugin(
       );
 
       watcher.on("change", (filePath) => {
+        // Only watch .mirror.json files
+        if (!filePath.endsWith(".mirror.json")) {
+          return;
+        }
+
         try {
+          const relativePath = path.relative(baseDir, filePath);
+
           // Skip if this was a recent write from WebSocket to prevent echo
-          if (recentWrites.has(filePath)) {
-            recentWrites.delete(filePath);
+          if (recentWrites.has(relativePath)) {
+            recentWrites.delete(relativePath);
             return;
           }
 
           const content = fs.readFileSync(filePath, "utf8");
           const data = JSON.parse(content);
 
-          const relativePath = path.relative(
-            server.config.root || process.cwd(),
-            filePath,
-          );
           const name = relativePath.replace(/\.mirror\.json$/, "");
 
           // This is an external file change (from editor, etc.)
@@ -88,7 +182,7 @@ export function mirrorStatePlugin(
 
           // Invalidate the virtual module for HMR
           const mod = server.moduleGraph.getModuleById(
-            "virtual:mirrorstate/initial-states",
+            "\0virtual:mirrorstate/initial-states",
           );
           if (mod) {
             server.moduleGraph.invalidateModule(mod);
@@ -108,10 +202,12 @@ export function mirrorStatePlugin(
         logger(`Client connected to MirrorState (${clientId})`);
 
         const pattern = Array.isArray(opts.filePattern)
-          ? opts.filePattern
-          : [opts.filePattern];
+          ? opts.filePattern.map((p) => path.join(baseDir, p))
+          : [path.join(baseDir, opts.filePattern)];
         const mirrorFiles = pattern.flatMap((p) =>
-          glob.sync(p, { ignore: "node_modules/**" }),
+          glob.sync(p, {
+            ignore: "node_modules/**",
+          }),
         );
 
         mirrorFiles.forEach((filePath: string) => {
@@ -159,20 +255,23 @@ export function mirrorStatePlugin(
             // Update last message hash for this client
             lastMessageHash.set(clientId, messageHash);
 
-            const filePath = `${name}.mirror.json`;
+            const baseDir = server.config.root || process.cwd();
+            const relativeFilePath = `${name}.mirror.json`;
+            const filePath = path.join(baseDir, relativeFilePath);
             const jsonContent = opts.prettyPrint
               ? JSON.stringify(state, null, 2)
               : JSON.stringify(state);
 
-            // Mark this as a recent write to prevent file watcher echo
-            recentWrites.add(filePath);
-
             // Write state to file
             fs.writeFileSync(filePath, jsonContent);
 
+            // Mark this as a recent write to prevent file watcher echo
+            // (only after successful write)
+            recentWrites.add(relativeFilePath);
+
             // Invalidate the virtual module for HMR
             const mod = server.moduleGraph.getModuleById(
-              "virtual:mirrorstate/initial-states",
+              "\0virtual:mirrorstate/initial-states",
             );
             if (mod) {
               server.moduleGraph.invalidateModule(mod);
@@ -181,16 +280,10 @@ export function mirrorStatePlugin(
             // Broadcast to other clients (exclude sender to prevent echo)
             wss.clients.forEach((client) => {
               if (client !== ws && client.readyState === client.OPEN) {
-                const relativePath = path.relative(
-                  server.config.root || process.cwd(),
-                  filePath,
-                );
-                const fileName = relativePath.replace(/\.mirror\.json$/, "");
-
                 client.send(
                   JSON.stringify({
                     type: "fileChange",
-                    name: fileName,
+                    name,
                     state: state,
                     source: clientId,
                   }),
@@ -213,26 +306,29 @@ export function mirrorStatePlugin(
     },
 
     resolveId(id) {
-      if (
-        id === "virtual:mirrorstate/config" ||
-        id === "virtual:mirrorstate/initial-states"
-      ) {
-        return id;
+      if (id === "virtual:mirrorstate/config") {
+        return "\0" + id;
+      }
+      if (id === "virtual:mirrorstate/initial-states") {
+        return "\0" + id;
       }
     },
 
     load(id) {
-      if (id === "virtual:mirrorstate/config") {
+      if (id === "\0virtual:mirrorstate/config") {
         return `export const WS_PATH = "${opts.path}";`;
       }
 
-      if (id === "virtual:mirrorstate/initial-states") {
+      if (id === "\0virtual:mirrorstate/initial-states") {
         // During build, read all mirror files and inline them
+        const baseDir = process.cwd();
         const pattern = Array.isArray(opts.filePattern)
-          ? opts.filePattern
-          : [opts.filePattern];
+          ? opts.filePattern.map((p) => path.join(baseDir, p))
+          : [path.join(baseDir, opts.filePattern)];
         const mirrorFiles = pattern.flatMap((p) =>
-          glob.sync(p, { ignore: "node_modules/**" }),
+          glob.sync(p, {
+            ignore: "node_modules/**",
+          }),
         );
 
         const states: Record<string, any> = {};

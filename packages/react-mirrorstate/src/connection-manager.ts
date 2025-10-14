@@ -1,7 +1,3 @@
-import debug from "debug";
-
-const logger = debug("mirrorstate:ws-manager");
-
 type StateListener = (state: any) => void;
 
 class WebSocketConnectionManager {
@@ -10,9 +6,9 @@ class WebSocketConnectionManager {
   private listeners = new Map<string, Set<StateListener>>();
   private currentStates = new Map<string, any>();
 
-  private getWebSocketConfig() {
+  private async getWebSocketConfig() {
     try {
-      const config = require("virtual:mirrorstate/config");
+      const config = await import("virtual:mirrorstate/config");
       return config;
     } catch {
       return { WS_PATH: "/mirrorstate" };
@@ -29,6 +25,13 @@ class WebSocketConnectionManager {
     return `${protocol}//${host}${path}`;
   }
 
+  private cleanup(): void {
+    this.isConnecting = false;
+    this.ws = null;
+    this.pendingUpdates.forEach((timeout) => clearTimeout(timeout));
+    this.pendingUpdates.clear();
+  }
+
   async connect(): Promise<void> {
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
       return;
@@ -41,28 +44,22 @@ class WebSocketConnectionManager {
 
     this.isConnecting = true;
 
-    const config = this.getWebSocketConfig();
+    const config = await this.getWebSocketConfig();
     const wsUrl = this.buildWebSocketURL(config.WS_PATH);
-
-    logger(`Connecting to ${wsUrl}`);
 
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
       this.isConnecting = false;
-      logger("WebSocket connected");
     };
 
     this.ws.onclose = () => {
-      this.isConnecting = false;
-      this.ws = null;
-      logger("WebSocket closed");
+      this.cleanup();
     };
 
     this.ws.onerror = () => {
-      this.isConnecting = false;
-      this.ws = null;
       console.error("WebSocket error");
+      this.cleanup();
     };
 
     this.ws.onmessage = (event) => {
@@ -72,13 +69,11 @@ class WebSocketConnectionManager {
         if (data.type === "initialState") {
           this.currentStates.set(data.name, data.state);
           this.notifyListeners(data.name, data.state);
-          logger(`Initial state loaded: ${data.name}`, data.state);
         }
 
         if (data.type === "fileChange") {
           this.currentStates.set(data.name, data.state);
           this.notifyListeners(data.name, data.state);
-          logger(`State updated: ${data.name}`, data.state);
         }
       } catch (error) {
         console.error("Error handling server message:", error);
@@ -129,7 +124,6 @@ class WebSocketConnectionManager {
     // Check if this is actually a different state
     const lastState = this.lastSentState.get(name);
     if (lastState === state) {
-      logger(`Skipping duplicate state update for ${name}`);
       return;
     }
 
@@ -143,7 +137,6 @@ class WebSocketConnectionManager {
       this.currentStates.set(name, state);
       this.lastSentState.set(name, state);
       this.pendingUpdates.delete(name);
-      logger(`Sent state update for ${name}`);
     }, 10);
 
     this.pendingUpdates.set(name, timeout);

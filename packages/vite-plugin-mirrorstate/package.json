@@ -1,6 +1,6 @@
 {
   "name": "vite-plugin-mirrorstate",
-  "version": "0.2.0",
+  "version": "0.2.3",
   "description": "Vite plugin for bidirectional state synchronization through *.mirror.json files",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -22,17 +22,17 @@
     "directory": "packages/vite-plugin-mirrorstate"
   },
   "dependencies": {
-    "chokidar": "^3.5.3",
-    "debug": "^4.4.1",
-    "glob": "^10.3.10",
-    "ws": "^8.14.2"
+    "chokidar": "^4.0.3",
+    "debug": "^4.4.3",
+    "glob": "^11.0.3",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
-    "@types/node": "^18.0.0",
-    "@types/ws": "^8.5.8",
-    "typescript": "^5.3.3",
-    "vite": "^7.0.0"
+    "@types/node": "^24.7.2",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9"
   },
   "peerDependencies": {
     "vite": "^7.0.0"
