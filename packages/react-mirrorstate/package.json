@@ -1,6 +1,6 @@
 {
   "name": "react-mirrorstate",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "React library for bidirectional state synchronization with MirrorState",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
