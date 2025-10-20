@@ -5,7 +5,6 @@ class WebSocketConnectionManager {
   private isConnecting = false;
   private listeners = new Map<string, Set<StateListener>>();
   private currentStates = new Map<string, any>();
-  private clientId: string | null = null;
   private lastSeq = new Map<string, number>();
   private queuedUpdates = new Map<string, any>();
 
@@ -54,43 +53,43 @@ class WebSocketConnectionManager {
 
     this.ws.onopen = () => {
       this.isConnecting = false;
+
+      // Flush any queued updates
+      this.queuedUpdates.forEach((state, name) => {
+        this.updateState(name, state);
+      });
+      this.queuedUpdates.clear();
     };
 
     this.ws.onclose = () => {
       this.cleanup();
     };
 
-    this.ws.onerror = () => {
-      console.error("WebSocket error");
+    this.ws.onerror = (e) => {
+      console.error("WebSocket error", e);
       this.cleanup();
     };
 
     this.ws.onmessage = (event) => {
+      let data;
+
       try {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "connected") {
-          this.clientId = data.clientId;
-
-          // Flush any queued updates
-          this.queuedUpdates.forEach((state, name) => {
-            this.updateState(name, state);
-          });
-          this.queuedUpdates.clear();
-          return;
-        }
-
-        if (data.type === "fileChange") {
-          // Only apply updates with a higher sequence number
-          const currentSeq = this.lastSeq.get(data.name) ?? -1;
-          if (data.seq !== undefined && data.seq > currentSeq) {
-            this.lastSeq.set(data.name, data.seq);
-            this.currentStates.set(data.name, data.state);
-            this.notifyListeners(data.name, data.state);
-          }
-        }
+        data = JSON.parse(event.data);
       } catch (error) {
         console.error("Error handling server message:", error);
+
+        return;
+      }
+
+      if (data.type === "fileChange") {
+        // Only apply updates with a higher sequence number
+        const currentSeq = this.lastSeq.get(data.name) ?? -1;
+
+        if (data.seq !== undefined && data.seq > currentSeq) {
+          this.lastSeq.set(data.name, data.seq);
+          this.currentStates.set(data.name, data.state);
+          this.notifyListeners(data.name, data.state);
+        }
       }
     };
   }
@@ -102,13 +101,7 @@ class WebSocketConnectionManager {
 
     this.listeners.get(name)!.add(listener);
 
-    // Connect if not already connected (dev mode)
     this.connect();
-
-    // Don't immediately notify with currentStates here - it might be stale
-    // and could revert optimistic updates. The component initializes from
-    // INITIAL_STATES, and the server will send initialState messages when
-    // the connection is established, which will update all subscribers.
 
     return () => {
       const nameListeners = this.listeners.get(name);
@@ -124,7 +117,7 @@ class WebSocketConnectionManager {
   private pendingUpdates = new Map<string, NodeJS.Timeout>();
 
   updateState(name: string, state: any): void {
-    if (this.ws?.readyState !== WebSocket.OPEN || !this.clientId) {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
       this.queuedUpdates.set(name, state);
       return;
     }
@@ -137,15 +130,16 @@ class WebSocketConnectionManager {
 
     // Debounce rapid updates
     const timeout = setTimeout(() => {
-      if (!this.ws || !this.clientId) {
+      if (!this.ws) {
         return;
       }
 
-      this.ws.send(JSON.stringify({
-        clientId: this.clientId,
-        name,
-        state
-      }));
+      this.ws.send(
+        JSON.stringify({
+          name,
+          state,
+        }),
+      );
       this.currentStates.set(name, state);
       this.pendingUpdates.delete(name);
     }, 10);
