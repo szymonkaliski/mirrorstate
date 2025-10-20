@@ -1,5 +1,6 @@
 import CounterExample from "./CounterExample";
-import TodoExample from "./TodoExample";
+import TodoExample1 from "./TodoExample1";
+import TodoExample2 from "./TodoExample2";
 
 function App() {
   return (
@@ -17,8 +18,11 @@ function App() {
       <h2>Counter</h2>
       <CounterExample />
 
-      <h2>Todo List</h2>
-      <TodoExample />
+      <h2>Todo List 1 (without initial value)</h2>
+      <TodoExample1 />
+
+      <h2>Todo List 2 (with initial value)</h2>
+      <TodoExample2 />
     </div>
   );
 }

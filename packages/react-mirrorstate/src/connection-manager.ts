@@ -5,6 +5,9 @@ class WebSocketConnectionManager {
   private isConnecting = false;
   private listeners = new Map<string, Set<StateListener>>();
   private currentStates = new Map<string, any>();
+  private clientId: string | null = null;
+  private lastSeq = new Map<string, number>();
+  private queuedUpdates = new Map<string, any>();
 
   private async getWebSocketConfig() {
     try {
@@ -66,14 +69,25 @@ class WebSocketConnectionManager {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === "initialState") {
-          this.currentStates.set(data.name, data.state);
-          this.notifyListeners(data.name, data.state);
+        if (data.type === "connected") {
+          this.clientId = data.clientId;
+
+          // Flush any queued updates
+          this.queuedUpdates.forEach((state, name) => {
+            this.updateState(name, state);
+          });
+          this.queuedUpdates.clear();
+          return;
         }
 
         if (data.type === "fileChange") {
-          this.currentStates.set(data.name, data.state);
-          this.notifyListeners(data.name, data.state);
+          // Only apply updates with a higher sequence number
+          const currentSeq = this.lastSeq.get(data.name) ?? -1;
+          if (data.seq !== undefined && data.seq > currentSeq) {
+            this.lastSeq.set(data.name, data.seq);
+            this.currentStates.set(data.name, data.state);
+            this.notifyListeners(data.name, data.state);
+          }
         }
       } catch (error) {
         console.error("Error handling server message:", error);
@@ -91,10 +105,10 @@ class WebSocketConnectionManager {
     // Connect if not already connected (dev mode)
     this.connect();
 
-    // If we already have state for this name, notify immediately
-    if (this.currentStates.has(name)) {
-      listener(this.currentStates.get(name));
-    }
+    // Don't immediately notify with currentStates here - it might be stale
+    // and could revert optimistic updates. The component initializes from
+    // INITIAL_STATES, and the server will send initialState messages when
+    // the connection is established, which will update all subscribers.
 
     return () => {
       const nameListeners = this.listeners.get(name);
@@ -107,11 +121,11 @@ class WebSocketConnectionManager {
     };
   }
 
-  private lastSentState = new Map<string, any>();
   private pendingUpdates = new Map<string, NodeJS.Timeout>();
 
   updateState(name: string, state: any): void {
-    if (this.ws?.readyState !== WebSocket.OPEN) {
+    if (this.ws?.readyState !== WebSocket.OPEN || !this.clientId) {
+      this.queuedUpdates.set(name, state);
       return;
     }
 
@@ -121,21 +135,18 @@ class WebSocketConnectionManager {
       clearTimeout(pendingUpdate);
     }
 
-    // Check if this is actually a different state
-    const lastState = this.lastSentState.get(name);
-    if (lastState === state) {
-      return;
-    }
-
     // Debounce rapid updates
     const timeout = setTimeout(() => {
-      if (!this.ws) {
+      if (!this.ws || !this.clientId) {
         return;
       }
 
-      this.ws.send(JSON.stringify({ name, state }));
+      this.ws.send(JSON.stringify({
+        clientId: this.clientId,
+        name,
+        state
+      }));
       this.currentStates.set(name, state);
-      this.lastSentState.set(name, state);
       this.pendingUpdates.delete(name);
     }, 10);
 

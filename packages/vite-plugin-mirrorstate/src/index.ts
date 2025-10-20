@@ -27,12 +27,18 @@ export function mirrorStatePlugin(
 
   let wss: WebSocketServer;
   let watcher: chokidar.FSWatcher;
-  let recentWrites = new Set<string>(); // Track recent writes to prevent echo
+  let fileSequences = new Map<string, number>(); // Track sequence number per file
+  let lastWrittenState = new Map<string, string>(); // Track last written state hash per file to detect external changes
   let lastMessageHash = new Map<string, string>(); // Track last message hash per client to prevent duplicates
   let watcherReady = false; // Track if watcher has finished initial scan
+  let viteRoot: string; // Captured vite root directory
 
   return {
     name: "vite-plugin-mirrorstate",
+    configResolved(config) {
+      // Capture vite root for use in other hooks
+      viteRoot = config.root || process.cwd();
+    },
     configureServer(server) {
       const wsPath = opts.path;
 
@@ -154,19 +160,30 @@ export function mirrorStatePlugin(
 
         try {
           const relativePath = path.relative(baseDir, filePath);
-
-          // Skip if this was a recent write from WebSocket to prevent echo
-          if (recentWrites.has(relativePath)) {
-            recentWrites.delete(relativePath);
-            return;
-          }
-
           const content = fs.readFileSync(filePath, "utf8");
           const data = JSON.parse(content);
 
           const name = relativePath.replace(/\.mirror\.json$/, "");
 
-          // This is an external file change (from editor, etc.)
+          // Create hash of the state to detect if this is our own write
+          const stateHash = JSON.stringify(data);
+          const lastHash = lastWrittenState.get(name);
+
+          // Skip if this matches what we just wrote (echo from our own write)
+          if (lastHash === stateHash) {
+            logger(`Skipping file watcher echo for ${name}`);
+            return;
+          }
+
+          // This is an external change - increment sequence number
+          const currentSeq = fileSequences.get(name) ?? 0;
+          const seq = currentSeq + 1;
+          fileSequences.set(name, seq);
+
+          // Update our record of the last written state
+          lastWrittenState.set(name, stateHash);
+
+          // Broadcast file change with sequence number
           wss.clients.forEach((client) => {
             if (client.readyState === client.OPEN) {
               client.send(
@@ -174,6 +191,7 @@ export function mirrorStatePlugin(
                   type: "fileChange",
                   name,
                   state: data,
+                  seq,
                   source: "external",
                 }),
               );
@@ -188,7 +206,7 @@ export function mirrorStatePlugin(
             server.moduleGraph.invalidateModule(mod);
           }
 
-          logger(`Mirror file changed externally: ${name}`);
+          logger(`Mirror file changed externally: ${name} (seq: ${seq})`);
         } catch (error) {
           console.error(`Error reading mirror file ${filePath}:`, error);
         }
@@ -201,46 +219,19 @@ export function mirrorStatePlugin(
 
         logger(`Client connected to MirrorState (${clientId})`);
 
-        const pattern = Array.isArray(opts.filePattern)
-          ? opts.filePattern.map((p) => path.join(baseDir, p))
-          : [path.join(baseDir, opts.filePattern)];
-        const mirrorFiles = pattern.flatMap((p) =>
-          glob.sync(p, {
-            ignore: "node_modules/**",
-          }),
-        );
-
-        mirrorFiles.forEach((filePath: string) => {
-          try {
-            const content = fs.readFileSync(filePath, "utf8");
-            const data = JSON.parse(content);
-
-            const relativePath = path.relative(
-              server.config.root || process.cwd(),
-              filePath,
-            );
-            const name = relativePath.replace(/\.mirror\.json$/, "");
-
-            ws.send(
-              JSON.stringify({
-                type: "initialState",
-                name,
-                state: data,
-              }),
-            );
-          } catch (error) {
-            console.error(
-              `Error reading initial state from ${filePath}:`,
-              error,
-            );
-          }
+        // Send clientId to the client
+        const connectedMessage = JSON.stringify({
+          type: "connected",
+          clientId,
         });
+        logger(`Sending connected message: ${connectedMessage}`);
+        ws.send(connectedMessage);
 
         ws.on("message", (message) => {
           try {
             const messageStr = message.toString();
             const data = JSON.parse(messageStr);
-            const { name, state } = data;
+            const { clientId: msgClientId, name, state } = data;
 
             // Create a hash of the message to detect duplicates
             const messageHash = `${name}:${JSON.stringify(state)}`;
@@ -262,12 +253,16 @@ export function mirrorStatePlugin(
               ? JSON.stringify(state, null, 2)
               : JSON.stringify(state);
 
+            // Increment sequence number for this file BEFORE writing
+            const currentSeq = fileSequences.get(name) ?? 0;
+            const seq = currentSeq + 1;
+            fileSequences.set(name, seq);
+
+            // Record state hash to detect our own write in file watcher
+            lastWrittenState.set(name, JSON.stringify(state));
+
             // Write state to file
             fs.writeFileSync(filePath, jsonContent);
-
-            // Mark this as a recent write to prevent file watcher echo
-            // (only after successful write)
-            recentWrites.add(relativeFilePath);
 
             // Invalidate the virtual module for HMR
             const mod = server.moduleGraph.getModuleById(
@@ -277,21 +272,22 @@ export function mirrorStatePlugin(
               server.moduleGraph.invalidateModule(mod);
             }
 
-            // Broadcast to other clients (exclude sender to prevent echo)
+            // Broadcast to all OTHER clients (skip sender - they already applied optimistically)
             wss.clients.forEach((client) => {
               if (client !== ws && client.readyState === client.OPEN) {
                 client.send(
                   JSON.stringify({
                     type: "fileChange",
+                    clientId: msgClientId,
+                    seq,
                     name,
                     state: state,
-                    source: clientId,
                   }),
                 );
               }
             });
 
-            logger(`Updated ${name} with state (from ${clientId}):`, state);
+            logger(`Updated ${name} (seq: ${seq}) from ${clientId}:`, state);
           } catch (error) {
             console.error("Error handling client message:", error);
           }
@@ -321,7 +317,8 @@ export function mirrorStatePlugin(
 
       if (id === "\0virtual:mirrorstate/initial-states") {
         // During build, read all mirror files and inline them
-        const baseDir = process.cwd();
+        // Use vite root instead of process.cwd() to handle monorepos correctly
+        const baseDir = viteRoot || process.cwd();
         const pattern = Array.isArray(opts.filePattern)
           ? opts.filePattern.map((p) => path.join(baseDir, p))
           : [path.join(baseDir, opts.filePattern)];
@@ -337,7 +334,8 @@ export function mirrorStatePlugin(
           try {
             const content = fs.readFileSync(filePath, "utf8");
             const data = JSON.parse(content);
-            const relativePath = path.relative(process.cwd(), filePath);
+            // Use baseDir (vite root) for relative path calculation
+            const relativePath = path.relative(baseDir, filePath);
             const name = relativePath.replace(/\.mirror\.json$/, "");
             states[name] = data;
             logger(`Inlined initial state for ${name}`);

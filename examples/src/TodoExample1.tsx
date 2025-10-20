@@ -1,5 +1,5 @@
 import { useMirrorState } from "react-mirrorstate";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface Todo {
   id: string;
@@ -11,14 +11,11 @@ interface TodoState {
   todos: Todo[];
 }
 
-function TodoExample() {
-  const [todoState, updateTodoState] = useMirrorState<TodoState>("todos");
+function TodoExample1() {
+  const [todoState, updateTodoState] = useMirrorState<TodoState>("todos1");
   const [inputValue, setInputValue] = useState("");
 
-  useEffect(() => {
-    console.log("initial todo state", todoState);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  console.log("todos1 state", todoState?.todos);
 
   const addTodo = () => {
     if (inputValue.trim()) {
@@ -54,7 +51,8 @@ function TodoExample() {
   return (
     <div>
       <p>
-        Synchronized with <code>todos.mirror.json</code>
+        Synchronized with <code>todos1.mirror.json</code> (without initial
+        value)
       </p>
 
       <div>
@@ -95,4 +93,4 @@ function TodoExample() {
   );
 }
 
-export default TodoExample;
+export default TodoExample1;

@@ -1,13 +1,9 @@
-import { useEffect } from "react";
 import { useMirrorState } from "react-mirrorstate";
 
 function CounterExample() {
   const [count, updateCount] = useMirrorState("counter", 0);
 
-  useEffect(() => {
-    console.log("initial counter value", count);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  console.log("counter state", count);
 
   return (
     <div>
