@@ -50,3 +50,8 @@ temp/
 
 # Claude AI
 .claude/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
