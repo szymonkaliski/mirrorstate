@@ -3,6 +3,51 @@ import { produce, Draft } from "immer";
 import { connectionManager } from "./connection-manager";
 import { INITIAL_STATES } from "virtual:mirrorstate/initial-states";
 
+// Batching state for each mirror state name
+const batchQueues = new Map<
+  string,
+  Array<(draft: Draft<any>) => void>
+>();
+const batchPending = new Map<string, boolean>();
+const batchCallbacks = new Map<string, Array<(state: any) => void>>();
+
+function scheduleBatchFlush<T>(name: string): void {
+  if (batchPending.get(name)) {
+    return;
+  }
+
+  batchPending.set(name, true);
+
+  queueMicrotask(() => {
+    const queue = batchQueues.get(name);
+    const callbacks = batchCallbacks.get(name);
+
+    if (!queue || queue.length === 0) {
+      batchPending.set(name, false);
+      return;
+    }
+
+    // Apply all queued updates in sequence
+    // Get current state from connection manager, falling back to INITIAL_STATES
+    let currentState = connectionManager.getCurrentState(name) ?? (INITIAL_STATES?.[name] as T | undefined);
+
+    // Apply each update sequentially, handling both object mutations and primitive returns
+    let newState = currentState;
+    queue.forEach((updater) => {
+      newState = produce(newState as T, updater);
+    });
+
+    // Clear the queue
+    batchQueues.set(name, []);
+    batchPending.set(name, false);
+
+    // Update connection manager and notify all callbacks
+    connectionManager.updateState(name, newState);
+    callbacks?.forEach((callback) => callback(newState));
+    batchCallbacks.set(name, []);
+  });
+}
+
 export function useMirrorState<T>(
   name: string,
 ): [T | undefined, (updater: (draft: Draft<T>) => void) => void];
@@ -44,11 +89,20 @@ export function useMirrorState<T>(name: string, initialValue?: T) {
   }, [name]);
 
   const updateMirrorState = (updater: (draft: Draft<T>) => void) => {
-    const currentState = connectionManager.getCurrentState(name) ?? state;
-    const newState = produce(currentState as T, updater);
+    // Initialize batch queue for this name if needed
+    if (!batchQueues.has(name)) {
+      batchQueues.set(name, []);
+      batchCallbacks.set(name, []);
+    }
 
-    connectionManager.updateState(name, newState);
-    setState(newState);
+    // Add updater to batch queue
+    batchQueues.get(name)!.push(updater);
+
+    // Add setState to callbacks
+    batchCallbacks.get(name)!.push(setState);
+
+    // Schedule batch flush
+    scheduleBatchFlush<T>(name);
   };
 
   return [state, updateMirrorState];

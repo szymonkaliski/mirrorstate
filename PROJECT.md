@@ -174,3 +174,21 @@ The new API will support `useMirrorState<T>("name")` and `useMirrorState<T>("nam
 - [x] update examples code @done(2025-10-14)
 - [x] update README @done(2025-10-14)
 - [x] version bump the package @done(2025-10-14)
+
+## Feature: Automatic State Update Batching
+
+Similar to React 18's automatic batching, multiple `updateMirrorState` calls within the same synchronous execution context are now batched together to minimize re-renders and WebSocket messages.
+
+- [x] implement batching queue mechanism in `packages/react-mirrorstate/src/index.ts` @done(2025-11-05)
+  - [x] add batch queues to collect multiple updaters @done(2025-11-05)
+  - [x] use `queueMicrotask` to flush batch at end of synchronous execution @done(2025-11-05)
+  - [x] apply all queued updates sequentially using immer's `produce` @done(2025-11-05)
+  - [x] notify all React components with single setState call @done(2025-11-05)
+- [x] fix `connection-manager.ts` to immediately update `currentStates` @done(2025-11-05)
+  - [x] move `currentStates.set()` before debounce timeout @done(2025-11-05)
+  - [x] ensures subsequent batched updates can access latest state @done(2025-11-05)
+
+Benefits:
+- Multiple rapid updates result in single re-render instead of multiple
+- WebSocket messages are still debounced at 10ms (unchanged)
+- Better performance for rapid state changes (e.g., button spam)

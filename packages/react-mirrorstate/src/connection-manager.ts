@@ -117,6 +117,9 @@ class WebSocketConnectionManager {
   private pendingUpdates = new Map<string, NodeJS.Timeout>();
 
   updateState(name: string, state: any): void {
+    // Immediately update currentStates so subsequent reads get the latest value
+    this.currentStates.set(name, state);
+
     if (this.ws?.readyState !== WebSocket.OPEN) {
       this.queuedUpdates.set(name, state);
       return;
@@ -128,7 +131,7 @@ class WebSocketConnectionManager {
       clearTimeout(pendingUpdate);
     }
 
-    // Debounce rapid updates
+    // Debounce rapid WebSocket sends
     const timeout = setTimeout(() => {
       if (!this.ws) {
         return;
@@ -140,7 +143,6 @@ class WebSocketConnectionManager {
           state,
         }),
       );
-      this.currentStates.set(name, state);
       this.pendingUpdates.delete(name);
     }, 10);
 
