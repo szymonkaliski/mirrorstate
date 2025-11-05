@@ -15,10 +15,7 @@
     "clean": "rm -rf packages/*/dist examples/dist",
     "format": "prettier --write .",
     "publish": "npm run build && npm publish --workspace=packages/vite-plugin-mirrorstate && npm publish --workspace=packages/react-mirrorstate",
-    "test": "npm run test:e2e",
-    "test:e2e": "playwright test",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui"
+    "test": "node e2e/run-tests.js"
   },
   "workspaces": [
     "packages/*",
@@ -27,6 +24,7 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "concurrently": "^9.2.0",
+    "get-port": "^7.1.0",
     "prettier": "^3.6.2",
     "typescript": "^5.3.3"
   }

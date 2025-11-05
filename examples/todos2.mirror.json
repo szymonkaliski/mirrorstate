@@ -1,9 +1,3 @@
 {
-  "todos": [
-    {
-      "id": "1762334876517",
-      "text": "Test todo",
-      "completed": false
-    }
-  ]
+  "todos": []
 }

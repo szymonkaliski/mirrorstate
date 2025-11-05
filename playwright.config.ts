@@ -1,35 +1,28 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
+
+const TEST_PORT = process.env.TEST_PORT || "5173";
 
 export default defineConfig({
-  testDir: './e2e',
+  testDir: "./e2e",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: 'list',
+  reporter: "list",
+  globalSetup: "./e2e/global-setup.ts",
   use: {
-    baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
-    launchOptions: {
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--single-process', // Run in single process to avoid shared memory issues
-      ],
-    },
+    baseURL: `http://localhost:${TEST_PORT}`,
   },
   projects: [
     {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
   webServer: {
-    command: 'npm run examples',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: `PORT=${TEST_PORT} npm run examples`,
+    url: `http://localhost:${TEST_PORT}`,
+    reuseExistingServer: false,
     timeout: 120000,
   },
 });

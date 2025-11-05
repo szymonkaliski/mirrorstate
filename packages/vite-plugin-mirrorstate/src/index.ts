@@ -70,6 +70,10 @@ export function mirrorStatePlugin(): Plugin {
         },
         persistent: true,
         ignoreInitial: true,
+        awaitWriteFinish: {
+          stabilityThreshold: 50,
+          pollInterval: 10,
+        },
       });
 
       watcher.on("add", (filePath) => {
