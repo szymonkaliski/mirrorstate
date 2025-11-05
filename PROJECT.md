@@ -189,6 +189,7 @@ Similar to React 18's automatic batching, multiple `updateMirrorState` calls wit
   - [x] ensures subsequent batched updates can access latest state @done(2025-11-05)
 
 Benefits:
+
 - Multiple rapid updates result in single re-render instead of multiple
 - WebSocket messages are still debounced at 10ms (unchanged)
 - Better performance for rapid state changes (e.g., button spam)

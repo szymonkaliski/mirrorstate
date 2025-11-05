@@ -7,10 +7,7 @@ const BATCHING_FILE = path.join(__dirname, "../examples/batching.mirror.json");
 test.describe("Batching", () => {
   test.beforeEach(async () => {
     // Reset state before each test
-    await fs.writeFile(
-      BATCHING_FILE,
-      JSON.stringify({ count: 0, clicks: 0 }),
-    );
+    await fs.writeFile(BATCHING_FILE, JSON.stringify({ count: 0, clicks: 0 }));
   });
 
   test.afterAll(async () => {
