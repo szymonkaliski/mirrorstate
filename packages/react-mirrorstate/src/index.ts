@@ -4,12 +4,9 @@ import { connectionManager } from "./connection-manager";
 import { INITIAL_STATES } from "virtual:mirrorstate/initial-states";
 
 // Batching state for each mirror state name
-const batchQueues = new Map<
-  string,
-  Array<(draft: Draft<any>) => void>
->();
+const batchQueues = new Map<string, Array<(draft: Draft<any>) => void>>();
 const batchPending = new Map<string, boolean>();
-const batchCallbacks = new Map<string, Array<(state: any) => void>>();
+const batchCallbacks = new Map<string, Set<(state: any) => void>>();
 
 function scheduleBatchFlush<T>(name: string): void {
   if (batchPending.get(name)) {
@@ -29,7 +26,9 @@ function scheduleBatchFlush<T>(name: string): void {
 
     // Apply all queued updates in sequence
     // Get current state from connection manager, falling back to INITIAL_STATES
-    let currentState = connectionManager.getCurrentState(name) ?? (INITIAL_STATES?.[name] as T | undefined);
+    let currentState =
+      connectionManager.getCurrentState(name) ??
+      (INITIAL_STATES?.[name] as T | undefined);
 
     // Apply each update sequentially, handling both object mutations and primitive returns
     let newState = currentState;
@@ -44,7 +43,7 @@ function scheduleBatchFlush<T>(name: string): void {
     // Update connection manager and notify all callbacks
     connectionManager.updateState(name, newState);
     callbacks?.forEach((callback) => callback(newState));
-    batchCallbacks.set(name, []);
+    batchCallbacks.set(name, new Set());
   });
 }
 
@@ -92,14 +91,14 @@ export function useMirrorState<T>(name: string, initialValue?: T) {
     // Initialize batch queue for this name if needed
     if (!batchQueues.has(name)) {
       batchQueues.set(name, []);
-      batchCallbacks.set(name, []);
+      batchCallbacks.set(name, new Set());
     }
 
     // Add updater to batch queue
     batchQueues.get(name)!.push(updater);
 
     // Add setState to callbacks
-    batchCallbacks.get(name)!.push(setState);
+    batchCallbacks.get(name)!.add(setState);
 
     // Schedule batch flush
     scheduleBatchFlush<T>(name);
