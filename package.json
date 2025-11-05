@@ -14,7 +14,11 @@
     "dev:react": "npm run dev --workspace=packages/react-mirrorstate",
     "clean": "rm -rf packages/*/dist examples/dist",
     "format": "prettier --write .",
-    "publish": "npm run build && npm publish --workspace=packages/vite-plugin-mirrorstate && npm publish --workspace=packages/react-mirrorstate"
+    "publish": "npm run build && npm publish --workspace=packages/vite-plugin-mirrorstate && npm publish --workspace=packages/react-mirrorstate",
+    "test": "npm run test:e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui"
   },
   "workspaces": [
     "packages/*",
