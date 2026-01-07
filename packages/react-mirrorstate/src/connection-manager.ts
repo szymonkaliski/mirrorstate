@@ -120,6 +120,9 @@ class WebSocketConnectionManager {
     // Immediately update currentStates so subsequent reads get the latest value
     this.currentStates.set(name, state);
 
+    // Notify all local subscribers immediately (for same-page component sync)
+    this.notifyListeners(name, state);
+
     if (this.ws?.readyState !== WebSocket.OPEN) {
       this.queuedUpdates.set(name, state);
       return;

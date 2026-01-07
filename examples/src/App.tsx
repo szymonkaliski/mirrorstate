@@ -2,6 +2,7 @@ import CounterExample from "./CounterExample";
 import TodoExample1 from "./TodoExample1";
 import TodoExample2 from "./TodoExample2";
 import BatchingExample from "./BatchingExample";
+import SharedStateExample from "./SharedStateExample";
 
 function App() {
   return (
@@ -21,6 +22,9 @@ function App() {
 
       <h2>Batching</h2>
       <BatchingExample />
+
+      <h2>Shared State</h2>
+      <SharedStateExample />
 
       <h2>Todo List 1 (without initial value)</h2>
       <TodoExample1 />

@@ -6,7 +6,6 @@ import { INITIAL_STATES } from "virtual:mirrorstate/initial-states";
 // Batching state for each mirror state name
 const batchQueues = new Map<string, Array<(draft: Draft<any>) => void>>();
 const batchPending = new Map<string, boolean>();
-const batchCallbacks = new Map<string, Set<(state: any) => void>>();
 
 function scheduleBatchFlush<T>(name: string): void {
   if (batchPending.get(name)) {
@@ -17,7 +16,6 @@ function scheduleBatchFlush<T>(name: string): void {
 
   queueMicrotask(() => {
     const queue = batchQueues.get(name);
-    const callbacks = batchCallbacks.get(name);
 
     if (!queue || queue.length === 0) {
       batchPending.set(name, false);
@@ -40,10 +38,8 @@ function scheduleBatchFlush<T>(name: string): void {
     batchQueues.set(name, []);
     batchPending.set(name, false);
 
-    // Update connection manager and notify all callbacks
+    // Update connection manager (which notifies all subscribers)
     connectionManager.updateState(name, newState);
-    callbacks?.forEach((callback) => callback(newState));
-    batchCallbacks.set(name, new Set());
   });
 }
 
@@ -91,14 +87,10 @@ export function useMirrorState<T>(name: string, initialValue?: T) {
     // Initialize batch queue for this name if needed
     if (!batchQueues.has(name)) {
       batchQueues.set(name, []);
-      batchCallbacks.set(name, new Set());
     }
 
     // Add updater to batch queue
     batchQueues.get(name)!.push(updater);
-
-    // Add setState to callbacks
-    batchCallbacks.get(name)!.add(setState);
 
     // Schedule batch flush
     scheduleBatchFlush<T>(name);
