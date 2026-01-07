@@ -1,5 +1,7 @@
 type StateListener = (state: any) => void;
 
+const LOCALSTORAGE_PREFIX = "mirrorstate:";
+
 class WebSocketConnectionManager {
   private ws: WebSocket | null = null;
   private isConnecting = false;
@@ -7,6 +9,39 @@ class WebSocketConnectionManager {
   private currentStates = new Map<string, any>();
   private lastSeq = new Map<string, number>();
   private queuedUpdates = new Map<string, any>();
+
+  private getLocalStorageKey(name: string): string {
+    return `${LOCALSTORAGE_PREFIX}${name}`;
+  }
+
+  private saveToLocalStorage(name: string, state: any): void {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        this.getLocalStorageKey(name),
+        JSON.stringify(state),
+      );
+    } catch {
+      // Ignore localStorage errors (quota exceeded, etc.)
+    }
+  }
+
+  loadFromLocalStorage(name: string): any | undefined {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return undefined;
+    }
+    try {
+      const stored = window.localStorage.getItem(this.getLocalStorageKey(name));
+      if (stored !== null) {
+        return JSON.parse(stored);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return undefined;
+  }
 
   private async getWebSocketConfig() {
     try {
@@ -122,6 +157,12 @@ class WebSocketConnectionManager {
 
     // Notify all local subscribers immediately (for same-page component sync)
     this.notifyListeners(name, state);
+
+    // In production, persist to localStorage instead of WebSocket
+    if (process.env.NODE_ENV === "production") {
+      this.saveToLocalStorage(name, state);
+      return;
+    }
 
     if (this.ws?.readyState !== WebSocket.OPEN) {
       this.queuedUpdates.set(name, state);

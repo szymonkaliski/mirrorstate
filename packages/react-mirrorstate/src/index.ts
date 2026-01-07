@@ -56,9 +56,17 @@ export function useMirrorState<T>(name: string, initialValue?: T) {
   // Capture initialValue once on first render to make it stable
   const initialValueRef = useRef(initialValue);
 
-  const [state, setState] = useState<T | undefined>(
-    () => (INITIAL_STATES?.[name] as T | undefined) ?? initialValueRef.current,
-  );
+  const [state, setState] = useState<T | undefined>(() => {
+    // In production, check localStorage first for persisted state
+    if (process.env.NODE_ENV === "production") {
+      const storedState = connectionManager.loadFromLocalStorage(name);
+      if (storedState !== undefined) {
+        return storedState as T;
+      }
+    }
+    // Fall back to build-time initial states or user-provided initialValue
+    return (INITIAL_STATES?.[name] as T | undefined) ?? initialValueRef.current;
+  });
 
   const hasCreatedFile = useRef(false);
 

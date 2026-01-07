@@ -193,3 +193,31 @@ Benefits:
 - Multiple rapid updates result in single re-render instead of multiple
 - WebSocket messages are still debounced at 10ms (unchanged)
 - Better performance for rapid state changes (e.g., button spam)
+
+## Feature: LocalStorage State Persistence
+
+In production builds, state changes are persisted to localStorage to survive page reloads. This allows the app to maintain state across sessions without a backend.
+
+- [x] implement localStorage persistence in `connection-manager.ts` @done(2026-01-07)
+  - [x] add `saveToLocalStorage(name, state)` method @done(2026-01-07)
+  - [x] add `loadFromLocalStorage(name)` method @done(2026-01-07)
+  - [x] in `updateState()`, save to localStorage when in production mode @done(2026-01-07)
+- [x] update `index.ts` to load from localStorage in production @done(2026-01-07)
+  - [x] check localStorage first in `useState` initialization @done(2026-01-07)
+  - [x] fallback to `INITIAL_STATES` then `initialValue` @done(2026-01-07)
+- [x] add production build e2e test infrastructure @done(2026-01-07)
+  - [x] create `playwright.production.config.ts` for production tests @done(2026-01-07)
+  - [x] add `npm run test:production` script @done(2026-01-07)
+  - [x] update dev playwright config to exclude production tests @done(2026-01-07)
+- [x] write e2e tests for localStorage persistence @done(2026-01-07)
+  - [x] test initial state loads from build-time values @done(2026-01-07)
+  - [x] test state changes persist to localStorage @done(2026-01-07)
+  - [x] test localStorage state survives page reload @done(2026-01-07)
+  - [x] test localStorage takes priority over build-time initial state @done(2026-01-07)
+  - [x] test todo state persists to localStorage @done(2026-01-07)
+  - [x] test localStorage is scoped by state name @done(2026-01-07)
+
+Priority order for state initialization in production:
+1. localStorage (if exists)
+2. `INITIAL_STATES` (build-time values from `.mirror.json` files)
+3. `initialValue` (user-provided default)
