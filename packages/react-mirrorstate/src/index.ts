@@ -1,7 +1,11 @@
 import { useEffect, useState, useRef } from "react";
-import { produce, Draft } from "immer";
+import { produce, type Draft, type Immutable } from "immer";
 import { connectionManager } from "./connection-manager";
 import { INITIAL_STATES } from "virtual:mirrorstate/initial-states";
+
+// Re-export immer types for end users
+export { type Draft, type Immutable } from "immer";
+export { produce };
 
 // Batching state for each mirror state name
 const batchQueues = new Map<string, Array<(draft: Draft<any>) => void>>();
