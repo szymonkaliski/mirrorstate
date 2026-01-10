@@ -15,8 +15,8 @@
     "clean": "rm -rf packages/*/dist examples/dist",
     "format": "prettier --write .",
     "publish": "npm run build && npm publish --workspace=packages/vite-plugin-mirrorstate && npm publish --workspace=packages/react-mirrorstate",
-    "test": "node e2e/run-tests.js ; npm run format",
-    "test:production": "node e2e/run-production-tests.js ; npm run format"
+    "test": "node e2e/run-tests.js",
+    "test:production": "node e2e/run-production-tests.js"
   },
   "workspaces": [
     "packages/*",
