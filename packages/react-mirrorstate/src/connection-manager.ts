@@ -1,4 +1,13 @@
+import { STATES_HASH } from "virtual:mirrorstate/initial-states";
+
 type StateListener = (state: any) => void;
+
+const LOCALSTORAGE_KEY = "mirrorstate";
+
+interface StorageObject {
+  __hash__: string;
+  [key: string]: any;
+}
 
 class WebSocketConnectionManager {
   private ws: WebSocket | null = null;
@@ -7,6 +16,52 @@ class WebSocketConnectionManager {
   private currentStates = new Map<string, any>();
   private lastSeq = new Map<string, number>();
   private queuedUpdates = new Map<string, any>();
+
+  private getStorageObject(): StorageObject | null {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return null;
+    }
+    try {
+      const stored = window.localStorage.getItem(LOCALSTORAGE_KEY);
+      if (stored !== null) {
+        const obj = JSON.parse(stored) as StorageObject;
+        // Check hash - if mismatch, discard and return null
+        if (obj.__hash__ !== STATES_HASH) {
+          window.localStorage.removeItem(LOCALSTORAGE_KEY);
+          return null;
+        }
+        return obj;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return null;
+  }
+
+  private saveToLocalStorage(name: string, state: any): void {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+    try {
+      // Load existing object or create new one
+      let obj = this.getStorageObject();
+      if (!obj) {
+        obj = { __hash__: STATES_HASH };
+      }
+      obj[name] = state;
+      window.localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(obj));
+    } catch {
+      // Ignore localStorage errors (quota exceeded, etc.)
+    }
+  }
+
+  loadFromLocalStorage(name: string): any | undefined {
+    const obj = this.getStorageObject();
+    if (obj && name in obj) {
+      return obj[name];
+    }
+    return undefined;
+  }
 
   private async getWebSocketConfig() {
     try {
@@ -123,6 +178,12 @@ class WebSocketConnectionManager {
     // Notify all local subscribers immediately (for same-page component sync)
     this.notifyListeners(name, state);
 
+    // In production, persist to localStorage instead of WebSocket
+    if (process.env.NODE_ENV === "production") {
+      this.saveToLocalStorage(name, state);
+      return;
+    }
+
     if (this.ws?.readyState !== WebSocket.OPEN) {
       this.queuedUpdates.set(name, state);
       return;
@@ -154,6 +215,10 @@ class WebSocketConnectionManager {
 
   getCurrentState(name: string): any {
     return this.currentStates.get(name);
+  }
+
+  getStatesHash(): string {
+    return STATES_HASH;
   }
 
   private notifyListeners(name: string, state: any): void {

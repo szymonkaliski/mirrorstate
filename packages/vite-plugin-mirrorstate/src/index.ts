@@ -6,9 +6,21 @@ import { promises as fsPromises } from "fs";
 import * as path from "path";
 import { glob } from "glob";
 import debug from "debug";
+import * as crypto from "crypto";
 
 const logger = debug("mirrorstate:vite-plugin");
 const WS_PATH = "/mirrorstate";
+
+function computeStatesHash(states: Record<string, any>): string {
+  // Sort keys for deterministic output
+  const sortedKeys = Object.keys(states).sort();
+  const sortedStates: Record<string, any> = {};
+  for (const key of sortedKeys) {
+    sortedStates[key] = states[key];
+  }
+  const content = JSON.stringify(sortedStates);
+  return crypto.createHash("sha256").update(content).digest("hex").slice(0, 8);
+}
 
 export function mirrorStatePlugin(): Plugin {
   let wss: WebSocketServer;
@@ -249,7 +261,10 @@ export function mirrorStatePlugin(): Plugin {
           results.filter((x) => x != null),
         );
 
-        return `export const INITIAL_STATES = ${JSON.stringify(states)};`;
+        const statesHash = computeStatesHash(states);
+        logger(`Computed states hash: ${statesHash}`);
+
+        return `export const INITIAL_STATES = ${JSON.stringify(states)};\nexport const STATES_HASH = "${statesHash}";`;
       }
     },
 
