@@ -2,7 +2,12 @@ import { STATES_HASH } from "virtual:mirrorstate/initial-states";
 
 type StateListener = (state: any) => void;
 
-const LOCALSTORAGE_PREFIX = "mirrorstate:";
+const LOCALSTORAGE_KEY = "mirrorstate";
+
+interface StorageObject {
+  __hash__: string;
+  [key: string]: any;
+}
 
 class WebSocketConnectionManager {
   private ws: WebSocket | null = null;
@@ -12,8 +17,25 @@ class WebSocketConnectionManager {
   private lastSeq = new Map<string, number>();
   private queuedUpdates = new Map<string, any>();
 
-  private getLocalStorageKey(name: string): string {
-    return `${LOCALSTORAGE_PREFIX}${STATES_HASH}:${name}`;
+  private getStorageObject(): StorageObject | null {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return null;
+    }
+    try {
+      const stored = window.localStorage.getItem(LOCALSTORAGE_KEY);
+      if (stored !== null) {
+        const obj = JSON.parse(stored) as StorageObject;
+        // Check hash - if mismatch, discard and return null
+        if (obj.__hash__ !== STATES_HASH) {
+          window.localStorage.removeItem(LOCALSTORAGE_KEY);
+          return null;
+        }
+        return obj;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return null;
   }
 
   private saveToLocalStorage(name: string, state: any): void {
@@ -21,26 +43,22 @@ class WebSocketConnectionManager {
       return;
     }
     try {
-      window.localStorage.setItem(
-        this.getLocalStorageKey(name),
-        JSON.stringify(state),
-      );
+      // Load existing object or create new one
+      let obj = this.getStorageObject();
+      if (!obj) {
+        obj = { __hash__: STATES_HASH };
+      }
+      obj[name] = state;
+      window.localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(obj));
     } catch {
       // Ignore localStorage errors (quota exceeded, etc.)
     }
   }
 
   loadFromLocalStorage(name: string): any | undefined {
-    if (typeof window === "undefined" || !window.localStorage) {
-      return undefined;
-    }
-    try {
-      const stored = window.localStorage.getItem(this.getLocalStorageKey(name));
-      if (stored !== null) {
-        return JSON.parse(stored);
-      }
-    } catch {
-      // Ignore parse errors
+    const obj = this.getStorageObject();
+    if (obj && name in obj) {
+      return obj[name];
     }
     return undefined;
   }

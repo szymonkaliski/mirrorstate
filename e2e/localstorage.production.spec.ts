@@ -34,14 +34,14 @@ test.describe("LocalStorage Persistence (Production)", () => {
     const expectedValue = initialValue + 1;
     await expect(page.getByText(`Counter: ${expectedValue}`)).toBeVisible();
 
-    // Check that localStorage was updated (key includes hash: mirrorstate:<hash>:counter)
+    // Check that localStorage was updated (single object with __hash__ and counter)
     const storedValue = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find(
-        (k) => k.startsWith("mirrorstate:") && k.endsWith(":counter"),
-      );
-      return key ? localStorage.getItem(key) : null;
+      const stored = localStorage.getItem("mirrorstate");
+      if (!stored) return null;
+      const obj = JSON.parse(stored);
+      return obj.counter;
     });
-    expect(JSON.parse(storedValue!)).toBe(expectedValue);
+    expect(storedValue).toBe(expectedValue);
   });
 
   test("localStorage state survives page reload", async ({ page }) => {
@@ -73,20 +73,18 @@ test.describe("LocalStorage Persistence (Production)", () => {
   test("localStorage takes priority over build-time initial state", async ({
     page,
   }) => {
-    // First, set a value in localStorage using the correct key format
+    // First, create a valid localStorage entry by clicking
     await page.goto("/");
-
-    // Get the hash from existing localStorage keys after an update
     await page.getByRole("button", { name: "+" }).first().click();
     await page.waitForTimeout(100);
 
-    // Find the key pattern and set our value
+    // Get the current hash and modify counter value
     await page.evaluate(() => {
-      const key = Object.keys(localStorage).find(
-        (k) => k.startsWith("mirrorstate:") && k.endsWith(":counter"),
-      );
-      if (key) {
-        localStorage.setItem(key, "42");
+      const stored = localStorage.getItem("mirrorstate");
+      if (stored) {
+        const obj = JSON.parse(stored);
+        obj.counter = 42;
+        localStorage.setItem("mirrorstate", JSON.stringify(obj));
       }
     });
 
@@ -119,14 +117,14 @@ test.describe("LocalStorage Persistence (Production)", () => {
     const expectedValue = initialValue + 2;
     await expect(page.getByText(`Counter: ${expectedValue}`)).toBeVisible();
 
-    // Verify localStorage matches (key includes hash: mirrorstate:<hash>:counter)
+    // Verify localStorage matches
     const storedValue = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find(
-        (k) => k.startsWith("mirrorstate:") && k.endsWith(":counter"),
-      );
-      return key ? localStorage.getItem(key) : null;
+      const stored = localStorage.getItem("mirrorstate");
+      if (!stored) return null;
+      const obj = JSON.parse(stored);
+      return obj.counter;
     });
-    expect(JSON.parse(storedValue!)).toBe(expectedValue);
+    expect(storedValue).toBe(expectedValue);
 
     // Reload and verify persistence
     await page.reload();
@@ -147,12 +145,11 @@ test.describe("LocalStorage Persistence (Production)", () => {
     // Verify todo appears
     await expect(page.getByText("Test todo item")).toBeVisible();
 
-    // Check localStorage has the todo state (key includes hash: mirrorstate:<hash>:todos1)
+    // Check localStorage has the todo state
     const storedValue = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find(
-        (k) => k.startsWith("mirrorstate:") && k.endsWith(":todos1"),
-      );
-      return key ? localStorage.getItem(key) : null;
+      const stored = localStorage.getItem("mirrorstate");
+      if (!stored) return null;
+      return stored;
     });
     expect(storedValue).toContain("Test todo item");
 
@@ -161,7 +158,7 @@ test.describe("LocalStorage Persistence (Production)", () => {
     await expect(page.getByText("Test todo item")).toBeVisible();
   });
 
-  test("localStorage keys include hash for versioning", async ({ page }) => {
+  test("localStorage uses single object with hash", async ({ page }) => {
     await page.goto("/");
 
     // Wait for counter to load
@@ -173,20 +170,28 @@ test.describe("LocalStorage Persistence (Production)", () => {
     // Wait for localStorage to be updated
     await page.waitForTimeout(100);
 
-    // Verify counter state is in localStorage with hash in key (mirrorstate:<hash>:counter)
-    const keys = await page.evaluate(() => {
-      return Object.keys(localStorage).filter((k) =>
-        k.startsWith("mirrorstate:"),
-      );
+    // Verify localStorage structure: single "mirrorstate" key with __hash__ field
+    const storageInfo = await page.evaluate(() => {
+      const keys = Object.keys(localStorage);
+      const stored = localStorage.getItem("mirrorstate");
+      if (!stored) return { keys, obj: null };
+      const obj = JSON.parse(stored);
+      return {
+        keys,
+        hasHash: "__hash__" in obj,
+        hashLength: obj.__hash__?.length,
+        hasCounter: "counter" in obj,
+      };
     });
 
-    // Key should match pattern mirrorstate:<8-char-hash>:counter
-    const counterKey = keys.find((k) => k.endsWith(":counter"));
-    expect(counterKey).toBeTruthy();
-    expect(counterKey).toMatch(/^mirrorstate:[a-f0-9]{8}:counter$/);
+    expect(storageInfo.keys).toContain("mirrorstate");
+    expect(storageInfo.keys.length).toBe(1); // Only one key
+    expect(storageInfo.hasHash).toBe(true);
+    expect(storageInfo.hashLength).toBe(8);
+    expect(storageInfo.hasCounter).toBe(true);
   });
 
-  test("old localStorage data is ignored when hash changes", async ({
+  test("old localStorage data is cleared when hash changes", async ({
     page,
   }) => {
     // First, get the build-time initial value (after beforeEach clears localStorage)
@@ -195,26 +200,29 @@ test.describe("LocalStorage Persistence (Production)", () => {
     const counterText = await page.getByText(/Counter:/).textContent();
     const buildTimeValue = parseInt(counterText!.replace("Counter: ", ""), 10);
 
-    // Now clear localStorage and set a value with a fake old hash
+    // Set localStorage with a fake old hash
     await page.evaluate(() => {
       localStorage.clear();
-      // Set with a fake old hash (simulating data from a previous build)
-      localStorage.setItem("mirrorstate:oldhash1:counter", "999");
+      localStorage.setItem(
+        "mirrorstate",
+        JSON.stringify({ __hash__: "oldhash1", counter: 999 }),
+      );
     });
 
     // Reload the page
     await page.reload();
 
     // Counter should show build-time value, NOT 999 from old localStorage
-    // because the hash doesn't match the current build
-    await expect(
-      page.getByText(`Counter: ${buildTimeValue}`),
-    ).toBeVisible();
+    // because the hash doesn't match and the old data was cleared
+    await expect(page.getByText(`Counter: ${buildTimeValue}`)).toBeVisible();
 
-    // Verify the old hash key is still there but unused
-    const oldKeyExists = await page.evaluate(() => {
-      return localStorage.getItem("mirrorstate:oldhash1:counter") === "999";
+    // Old localStorage should be cleared (or replaced with new hash)
+    const storageCleared = await page.evaluate(() => {
+      const stored = localStorage.getItem("mirrorstate");
+      if (!stored) return true;
+      const obj = JSON.parse(stored);
+      return obj.__hash__ !== "oldhash1";
     });
-    expect(oldKeyExists).toBe(true);
+    expect(storageCleared).toBe(true);
   });
 });

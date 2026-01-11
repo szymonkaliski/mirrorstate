@@ -224,15 +224,25 @@ Priority order for state initialization in production:
 
 ## Feature: LocalStorage Hash Versioning
 
-LocalStorage keys now include a content hash of all `.mirror.json` files. When the data shape changes (files are modified), the hash changes and old localStorage data is automatically ignored.
+LocalStorage uses a single object with an embedded hash for versioning. When the data shape changes (files are modified), the hash changes and old localStorage data is automatically cleared.
+
+Storage format:
+```json
+{
+  "__hash__": "abc12345",
+  "counter": 0,
+  "todos1": { "todos": [] }
+}
+```
 
 - [x] compute SHA256 hash of all `.mirror.json` contents at build time @done(2026-01-11)
 - [x] export `STATES_HASH` via `virtual:mirrorstate/initial-states` module @done(2026-01-11)
-- [x] include hash in localStorage keys: `mirrorstate:<hash>:<name>` @done(2026-01-11)
-- [x] add e2e test for hash invalidation when data shape changes @done(2026-01-11)
+- [x] use single `mirrorstate` key with `__hash__` field @done(2026-01-11)
+- [x] auto-clear old data when hash mismatches @done(2026-01-11)
+- [x] add e2e tests for hash invalidation @done(2026-01-11)
 
 Benefits:
-- Old localStorage data is automatically ignored when `.mirror.json` files change
+- Single localStorage key instead of multiple keys
+- Old data automatically cleared when `.mirror.json` files change
+- No orphaned keys accumulating over time
 - No manual version management needed
-- Same build = same hash = data persists correctly
-- Different build with same data = same hash = data still persists
