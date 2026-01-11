@@ -218,6 +218,21 @@ In production builds, state changes are persisted to localStorage to survive pag
   - [x] test localStorage is scoped by state name @done(2026-01-07)
 
 Priority order for state initialization in production:
-1. localStorage (if exists)
+1. localStorage (if exists and hash matches)
 2. `INITIAL_STATES` (build-time values from `.mirror.json` files)
 3. `initialValue` (user-provided default)
+
+## Feature: LocalStorage Hash Versioning
+
+LocalStorage keys now include a content hash of all `.mirror.json` files. When the data shape changes (files are modified), the hash changes and old localStorage data is automatically ignored.
+
+- [x] compute SHA256 hash of all `.mirror.json` contents at build time @done(2026-01-11)
+- [x] export `STATES_HASH` via `virtual:mirrorstate/initial-states` module @done(2026-01-11)
+- [x] include hash in localStorage keys: `mirrorstate:<hash>:<name>` @done(2026-01-11)
+- [x] add e2e test for hash invalidation when data shape changes @done(2026-01-11)
+
+Benefits:
+- Old localStorage data is automatically ignored when `.mirror.json` files change
+- No manual version management needed
+- Same build = same hash = data persists correctly
+- Different build with same data = same hash = data still persists

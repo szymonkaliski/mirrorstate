@@ -1,3 +1,5 @@
+import { STATES_HASH } from "virtual:mirrorstate/initial-states";
+
 type StateListener = (state: any) => void;
 
 const LOCALSTORAGE_PREFIX = "mirrorstate:";
@@ -11,7 +13,7 @@ class WebSocketConnectionManager {
   private queuedUpdates = new Map<string, any>();
 
   private getLocalStorageKey(name: string): string {
-    return `${LOCALSTORAGE_PREFIX}${name}`;
+    return `${LOCALSTORAGE_PREFIX}${STATES_HASH}:${name}`;
   }
 
   private saveToLocalStorage(name: string, state: any): void {
@@ -195,6 +197,10 @@ class WebSocketConnectionManager {
 
   getCurrentState(name: string): any {
     return this.currentStates.get(name);
+  }
+
+  getStatesHash(): string {
+    return STATES_HASH;
   }
 
   private notifyListeners(name: string, state: any): void {
