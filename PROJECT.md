@@ -218,6 +218,7 @@ In production builds, state changes are persisted to localStorage to survive pag
   - [x] test localStorage is scoped by state name @done(2026-01-07)
 
 Priority order for state initialization in production:
+
 1. localStorage (if exists and hash matches)
 2. `INITIAL_STATES` (build-time values from `.mirror.json` files)
 3. `initialValue` (user-provided default)
@@ -227,6 +228,7 @@ Priority order for state initialization in production:
 LocalStorage uses a single object with an embedded hash for versioning. When the data shape changes (files are modified), the hash changes and old localStorage data is automatically cleared.
 
 Storage format:
+
 ```json
 {
   "__hash__": "abc12345",
@@ -242,6 +244,7 @@ Storage format:
 - [x] add e2e tests for hash invalidation @done(2026-01-11)
 
 Benefits:
+
 - Single localStorage key instead of multiple keys
 - Old data automatically cleared when `.mirror.json` files change
 - No orphaned keys accumulating over time
